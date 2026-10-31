@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chrono-Sphere · CA Deadline Radar</title>
+<style>
+:root{
+  --bg:#050714; --panel:rgba(13,19,48,.72); --line:rgba(255,255,255,.12);
+  --ink:#e8ecf6; --mut:#9aa6c2; --cyan:#00f0ff; --pink:#ff007f;
+  --red:#ff2d55; --red-bg:rgba(255,45,85,.22); --red-deep:rgba(110,0,28,.55);
+  --blue:#2f7bff; --blue-bg:rgba(47,123,255,.22); --blue-deep:rgba(8,38,110,.55);
+  --violet:#a07bff; --violet-bg:rgba(160,123,255,.14);
+  --gray:#6f7890;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh;overflow-x:hidden}
+button{font:inherit;color:inherit;cursor:pointer}
+a{color:inherit}
+#stars{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;background:radial-gradient(ellipse at bottom,#1b2735 0%,#090a0f 100%)}
+.nebula{position:fixed;border-radius:50%;filter:blur(90px);opacity:.28;z-index:0;pointer-events:none;animation:drift 22s infinite alternate ease-in-out}
+.n1{width:380px;height:380px;background:#7b2cf0;top:40px;left:-80px}
+.n2{width:460px;height:460px;background:#0aa5c4;bottom:-60px;right:-120px;animation-delay:-8s}
+.n3{width:300px;height:300px;background:#e0286f;top:48%;left:35%;opacity:.16;animation-delay:-14s}
+@keyframes drift{0%{transform:translate(0,0) scale(1)}100%{transform:translate(40px,-40px) scale(1.12)}}
+#fx{position:fixed;inset:0;width:100%;height:100%;z-index:60;pointer-events:none}
+
+.wrap{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:0 16px}
+header.top{position:sticky;top:0;z-index:40;background:rgba(7,10,25,.78);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid rgba(0,240,255,.18)}
+header .wrap{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding-top:12px;padding-bottom:12px}
+.brand{display:flex;align-items:center;gap:12px}
+.logo{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#00c6e0,#7b2cf0);display:grid;place-items:center;box-shadow:0 0 22px rgba(0,240,255,.3);font-size:20px}
+.logo span{display:inline-block;animation:spin 14s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+h1{margin:0;font-size:19px;letter-spacing:.14em;font-weight:800;background:linear-gradient(90deg,#4de8ff,#d4b8ff,#ff4fa0);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{font:11px "Courier New",monospace;letter-spacing:.2em;color:rgba(0,240,255,.75)}
+.hdr-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border-radius:99px;border:1px solid var(--line);background:rgba(255,255,255,.04);font:12px "Courier New",monospace;white-space:nowrap}
+.dot{width:9px;height:9px;border-radius:50%;background:#34e39b;box-shadow:0 0 10px #34e39b;animation:beat 1.6s infinite}
+.pill.off .dot{background:#ffb020;box-shadow:0 0 10px #ffb020}
+.pill.sync .dot{background:var(--cyan);box-shadow:0 0 10px var(--cyan)}
+@keyframes beat{50%{opacity:.35;transform:scale(.8)}}
+.btn{min-height:40px;padding:8px 14px;border-radius:10px;border:1px solid rgba(0,240,255,.35);background:rgba(0,240,255,.08);font-weight:600;font-size:13px;transition:.2s}
+.btn:hover{background:rgba(0,240,255,.2)}
+.btn:active{transform:scale(.96)}
+.btn[aria-pressed=false]{opacity:.6;border-color:var(--line)}
+
+#arm{display:none;margin:12px 0 0;padding:10px 14px;border-radius:12px;border:1px dashed rgba(255,215,0,.55);background:rgba(255,215,0,.08);color:#ffe27a;font-size:13px;text-align:center}
+#arm.show{display:block}
+
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0 14px}
+.stat{padding:12px 14px;border-radius:14px;background:var(--panel);border:1px solid var(--line)}
+.stat b{display:block;font:800 26px/1.1 "Courier New",monospace}
+.stat small{color:var(--mut);font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+.stat.s-red b{color:var(--red)} .stat.s-blue b{color:#6ea4ff} .stat.s-today b{color:#ffb020} .stat.s-all b{color:var(--cyan)}
+
+.controls{padding:12px;border-radius:16px;background:var(--panel);border:1px solid var(--line);display:grid;gap:10px}
+.crow{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:thin}
+.chip{flex:none;min-height:36px;padding:6px 14px;border-radius:99px;border:1px solid var(--line);background:rgba(255,255,255,.04);font-size:13px;transition:.15s;white-space:nowrap}
+.chip:hover{background:rgba(255,255,255,.1)}
+.chip .n{opacity:.7;margin-left:4px;font-family:"Courier New",monospace}
+.chip[aria-pressed=true]{color:#fff;font-weight:700}
+.chip.f-all[aria-pressed=true]{background:rgba(0,240,255,.22);border-color:var(--cyan)}
+.chip.f-red[aria-pressed=true]{background:var(--red-bg);border-color:var(--red);box-shadow:0 0 14px rgba(255,45,85,.4)}
+.chip.f-blue[aria-pressed=true]{background:var(--blue-bg);border-color:var(--blue);box-shadow:0 0 14px rgba(47,123,255,.4)}
+.chip.f-violet[aria-pressed=true]{background:var(--violet-bg);border-color:var(--violet)}
+.chip.f-gray[aria-pressed=true]{background:rgba(111,120,144,.25);border-color:var(--gray)}
+.chip.m[aria-pressed=true]{background:rgba(255,255,255,.16);border-color:#fff}
+.srow{display:flex;gap:8px}
+.srow input,.srow select{flex:1;min-height:40px;padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:rgba(5,7,20,.8);color:var(--ink);font:inherit}
+.srow select{flex:0 0 auto;max-width:48%}
+.srow input:focus,.srow select:focus{outline:2px solid rgba(0,240,255,.6);outline-offset:1px}
+.lbl{font:11px "Courier New",monospace;letter-spacing:.12em;color:var(--mut);text-transform:uppercase}
+
+.grid{align-items:start;display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:16px;margin:18px 0}
+.card{position:relative;overflow:hidden;padding:18px;border-radius:18px;border:1px solid var(--line);background:rgba(15,23,62,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;flex-direction:column;gap:10px;transition:transform .25s,border-color .25s;cursor:pointer;outline:none}
+.card:hover,.card:focus-visible{transform:translateY(-4px) scale(1.01)}
+.card:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.card.enter{animation:fall .85s cubic-bezier(.175,.885,.32,1.275) both;animation-delay:calc(var(--i,0)*70ms)}
+@keyframes fall{0%{opacity:0;transform:translateY(-380px) scale(.7) rotate(-4deg)}70%{opacity:1;transform:translateY(16px) scale(1.02) rotate(1deg)}100%{opacity:1;transform:none}}
+.card.red{background:linear-gradient(150deg,var(--red-bg),var(--red-deep));border-color:var(--red);box-shadow:0 0 26px rgba(255,45,85,.35),inset 0 0 28px rgba(255,45,85,.12);animation:redglow 2.4s ease-in-out infinite}
+.card.red.enter{animation:fall .85s cubic-bezier(.175,.885,.32,1.275) both,redglow 2.4s ease-in-out .9s infinite;animation-delay:calc(var(--i,0)*70ms),calc(var(--i,0)*70ms + .9s)}
+@keyframes redglow{50%{box-shadow:0 0 44px rgba(255,45,85,.7),inset 0 0 34px rgba(255,45,85,.22);border-color:#ff7a93}}
+.card.red.hot{animation:redhot 1s ease-in-out infinite}
+@keyframes redhot{0%,100%{background-color:rgba(255,45,85,.0)}50%{background-color:rgba(255,45,85,.28)}}
+.card.blue{background:linear-gradient(150deg,var(--blue-bg),var(--blue-deep));border-color:var(--blue);box-shadow:0 0 22px rgba(47,123,255,.3),inset 0 0 24px rgba(47,123,255,.1)}
+.card.violet{background:linear-gradient(150deg,var(--violet-bg),rgba(20,16,60,.6));border-color:rgba(160,123,255,.5)}
+.card.gray{filter:grayscale(1);opacity:.55}
+.card.soon:not(.red){animation:soon 2.2s ease-in-out infinite}
+@keyframes soon{50%{box-shadow:0 0 30px rgba(255,215,0,.45);border-color:#ffd700}}
+.card .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tag{font:700 11px "Courier New",monospace;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:99px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2)}
+.badge{font:800 11px "Courier New",monospace;letter-spacing:.08em;padding:3px 9px;border-radius:99px;background:rgba(0,0,0,.35);border:1px solid currentColor}
+.red .badge{color:#ff8da3} .blue .badge{color:#8db7ff} .violet .badge{color:#cbb6ff} .gray .badge{color:#aab}
+.ribbon{align-self:flex-start;font:800 11px "Courier New",monospace;letter-spacing:.1em;padding:3px 10px;border-radius:6px;background:var(--blue);color:#fff;box-shadow:0 0 14px rgba(47,123,255,.7)}
+.newtag{font:800 10px "Courier New",monospace;padding:2px 7px;border-radius:5px;background:#ffd700;color:#1a1400;animation:beat 1.2s infinite}
+.card h3{margin:0;font-size:16.5px;line-height:1.35;font-weight:700;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.card.open h3{-webkit-line-clamp:unset}
+.when{background:rgba(5,7,20,.62);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:10px 12px;text-align:center;font-family:"Courier New",monospace}
+.when .date{font-weight:800;font-size:17px}
+.when .cd{font-weight:800;font-size:20px;letter-spacing:.06em;margin-top:2px}
+.red .cd{color:#ff8da3} .blue .cd{color:#8db7ff} .violet .cd{color:#cbb6ff} .gray .cd{color:#aab;font-size:15px}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:8px;color:var(--mut);font-size:12px}
+.more{display:none;border-top:1px dashed var(--line);padding-top:10px;font-size:13px}
+.card.open .more{display:grid;gap:8px}
+.more a{display:block;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,.06);text-decoration:none}
+.more a:hover{background:rgba(255,255,255,.14)}
+.more small{display:block;color:var(--mut)}
+.acts{display:flex;gap:8px}
+.acts .btn{flex:1;min-height:36px;font-size:12px;padding:6px 8px}
+
+.empty{grid-column:1/-1;text-align:center;padding:48px 16px;border:1px dashed rgba(0,240,255,.3);border-radius:18px;background:var(--panel);color:var(--mut)}
+.empty h3{margin:0 0 6px;color:var(--ink)}
+details.radar{margin:8px 0 28px;border-radius:16px;background:var(--panel);border:1px solid var(--line)}
+details.radar summary{padding:14px 16px;cursor:pointer;font-weight:700}
+details.radar ul{list-style:none;margin:0;padding:0 12px 12px;display:grid;gap:8px}
+details.radar a{display:block;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.05);text-decoration:none}
+details.radar a:hover{background:rgba(255,255,255,.12)}
+details.radar small{color:var(--mut);display:block}
+footer{position:relative;z-index:1;border-top:1px solid rgba(0,240,255,.15);padding:16px;text-align:center;font:11px "Courier New",monospace;color:var(--mut)}
+#toast{position:fixed;left:50%;bottom:20px;transform:translate(-50%,120px);z-index:70;max-width:min(92vw,520px);padding:12px 18px;border-radius:14px;background:#0d1330;border:1px solid var(--cyan);box-shadow:0 0 30px rgba(0,240,255,.35);transition:transform .35s cubic-bezier(.2,1.2,.4,1);font-size:14px}
+#toast.show{transform:translate(-50%,0)}
+
+/* ---- priority sections ---- */
+@media(prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+#grid{scroll-margin-top:84px}
+.jump{display:flex;gap:8px;overflow-x:auto;margin:14px 0 0;padding-bottom:2px}
+.jump a{flex:none;padding:8px 14px;border-radius:99px;border:1px solid var(--line);background:rgba(255,255,255,.04);text-decoration:none;font-size:13px;transition:.15s}
+.jump a:hover{background:rgba(255,255,255,.12)}
+.panel{margin:8px 0 26px;padding:16px;border-radius:18px;background:var(--panel);border:1px solid var(--line);display:grid;gap:12px;scroll-margin-top:84px}
+.sec-h h2{margin:0;font-size:18px;letter-spacing:.04em}
+.sec-h p{margin:3px 0 0}
+.p1{--pc:#ff5a78}.p2{--pc:#ffb020}.p3{--pc:#00f0ff}.p4{--pc:#9aa6c2}
+.pp{display:inline-block;font:800 10.5px "Courier New",monospace;letter-spacing:.08em;padding:2px 8px;border-radius:6px;color:#05071a;background:var(--pc,#9aa6c2);white-space:nowrap}
+.chip.pf[aria-pressed=true]{border-color:var(--pc);background:rgba(255,255,255,.14);box-shadow:0 0 12px rgba(255,255,255,.12)}
+.chip.pf i{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--pc);margin-right:6px}
+.nlist{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.nlist a{display:grid;gap:4px;padding:10px 12px 10px 14px;border-radius:10px;background:rgba(255,255,255,.05);text-decoration:none;border-left:4px solid var(--pc)}
+.nlist a:hover{background:rgba(255,255,255,.12)}
+.nlist .t{font-weight:600;line-height:1.35}
+.nlist .m{display:flex;flex-wrap:wrap;gap:8px;align-items:center;color:var(--mut);font-size:12px}
+.dl{font:700 11px "Courier New",monospace;color:#ffd76a}
+#pnMore{justify-self:center}
+.legend{display:flex;flex-wrap:wrap;gap:8px}
+.legend span{padding:3px 10px;border-radius:99px;border:1px solid var(--lc);font:11px "Courier New",monospace;background:rgba(255,255,255,.04)}
+.lv-r{--lc:#ff2d55}.lv-o{--lc:#ff8a1f}.lv-y{--lc:#ffd700}.lv-c{--lc:#4a6bd8}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.fc{padding:12px 12px 12px 14px;border-radius:12px;background:rgba(5,7,20,.55);border:1px solid var(--line);border-left:5px solid var(--lc);display:grid;gap:4px}
+.fc .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.fc b{font-size:14.5px;line-height:1.3}
+.fc .cdn{font:800 19px "Courier New",monospace;color:var(--lc)}
+.fc .lvl{font:700 10.5px "Courier New",monospace;letter-spacing:.08em;color:var(--lc)}
+.note{margin:0;color:var(--mut);font-size:12px}
+.pd{border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--line);border-left:5px solid var(--pc)}
+.pd summary{padding:12px 14px;cursor:pointer;font-weight:700;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.scroll{overflow-x:auto;padding:0 10px 10px}
+.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
+.tbl th,.tbl td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+.tbl th{font:11px "Courier New",monospace;letter-spacing:.1em;color:var(--mut);text-transform:uppercase}
+.ranks{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.ranks li{display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:center;padding:9px 10px;border-radius:10px;background:rgba(255,255,255,.05)}
+.ranks .no{font:800 15px "Courier New",monospace;color:var(--cyan);text-align:center}
+.ranks .fq{font:11px "Courier New",monospace;color:var(--mut);text-align:right}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tags span{padding:4px 10px;border-radius:99px;border:1px solid var(--line);background:rgba(255,255,255,.05);font-size:12px}
+.fh{margin:6px 0 0;font:11px "Courier New",monospace;letter-spacing:.12em;color:var(--mut);text-transform:uppercase}
+.chk{display:grid;gap:6px}
+.chk label{display:flex;gap:10px;align-items:center;min-height:42px;padding:6px 12px;border-radius:10px;background:rgba(255,255,255,.05);cursor:pointer}
+.chk input{width:18px;height:18px;accent-color:#00f0ff}
+.chk .done{text-decoration:line-through;opacity:.5}
+.chk .no{font:800 12px "Courier New",monospace;color:var(--cyan);width:22px}
+.bar{height:8px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#00f0ff,#a07bff);transition:width .3s}
+.portals{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px}
+.portals a{display:block;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.05);text-decoration:none}
+.portals a:hover{background:rgba(255,255,255,.12)}
+.portals small{display:block;color:var(--mut)}
+
+.modal{position:fixed;inset:0;z-index:80;background:rgba(3,5,15,.78);display:grid;place-items:center;padding:16px}
+.modal[hidden]{display:none}
+.mbox{position:relative;width:min(580px,100%);max-height:88vh;overflow:auto;padding:18px;border-radius:18px;background:#0d1330;border:1px solid var(--cyan);box-shadow:0 0 40px rgba(0,240,255,.25);display:grid;gap:10px}
+.mbox h3{margin:0 40px 0 0;font-size:17px}
+.mclose{position:absolute;top:10px;right:10px;min-height:34px;padding:4px 11px}
+.rt{margin:0;font-weight:700;line-height:1.35}
+.ext{display:block;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.06);text-decoration:none}
+.ext:hover{background:rgba(255,255,255,.14)}
+.ext small{display:block;color:var(--mut)}
+.fc .btn{min-height:34px;margin-top:4px;font-size:12px}
+@media(max-width:640px){
+  .stats{grid-template-columns:repeat(2,1fr)}
+  h1{font-size:16px}
+  .grid{grid-template-columns:1fr}
+  .srow{flex-wrap:wrap}.srow select{max-width:none;flex:1 1 100%}
+}
+@media(prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+<div class="nebula n1"></div><div class="nebula n2"></div><div class="nebula n3"></div>
+<canvas id="fx"></canvas>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand">
+      <div class="logo"><span>⏱</span></div>
+      <div><h1>CHRONO-SPHERE</h1><div class="sub">CA DEADLINE RADAR</div></div>
+    </div>
+    <div class="hdr-actions">
+      <span class="pill sync" id="status"><i class="dot"></i><span id="statusTxt">CONNECTING…</span></span>
+      <button class="btn" id="syncBtn" title="Fetch the newest news now">⟳ Sync</button>
+      <button class="btn" id="soundBtn" aria-pressed="true" title="Sound on/off">🔊 Sound</button>
+      <button class="btn" id="demoBtn" title="Drop sample cards to preview colours and sounds">▶ Preview</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div id="arm">🔇 Tap anywhere on the page once to arm sound alerts.</div>
+  <nav class="jump" aria-label="Sections"><a href="#grid">📅 Deadlines</a><a href="#pnews">📰 Priority news</a><a href="#firm">🏛 CA firm priority</a></nav>
+
+  <section class="stats" aria-label="Summary">
+    <div class="stat s-all"><b id="stAll">0</b><small>Active deadlines</small></div>
+    <div class="stat s-red"><b id="stRed">0</b><small>Due this month</small></div>
+    <div class="stat s-blue"><b id="stExt">0</b><small>Extended</small></div>
+    <div class="stat s-today"><b id="stToday">0</b><small>Due today</small></div>
+  </section>
+
+  <section class="controls" aria-label="Filters">
+    <div class="crow" id="statusChips"></div>
+    <div class="crow" id="monthChips"></div>
+    <div class="srow">
+      <input id="q" type="search" placeholder="Search deadlines…" aria-label="Search deadlines">
+      <select id="cat" aria-label="Category"></select>
+    </div>
+  </section>
+
+  <section class="grid" id="grid" aria-live="polite"></section>
+
+  <section class="panel" id="pnews" aria-label="Priority news">
+    <div class="sec-h"><h2>📰 Priority News</h2><p class="lbl">Live headlines ranked on the CA-firm priority scale</p></div>
+    <div class="crow" id="pnChips"></div>
+    <ul class="nlist" id="pnList"></ul>
+    <button class="btn" id="pnMore" hidden>Show more</button>
+  </section>
+
+  <section class="panel" id="firm" aria-label="Chartered accountancy firm priority">
+    <div class="sec-h"><h2>🏛 Chartered Accountancy Firm Priority</h2><p class="lbl">Statutory compliance priorities · FY 2026–27</p></div>
+    <div class="crow" id="firmTabs"></div>
+    <div id="firmBody" style="display:grid;gap:12px"></div>
+  </section>
+
+  <details class="radar" id="radar">
+    <summary>📡 Deadline news without a date <span id="radarN" class="lbl"></span></summary>
+    <ul id="radarList"></ul>
+  </details>
+</main>
+
+<footer>
+  Headlines come from public Indian news feeds, fetched automatically about every 15 minutes, and link to the publisher. Dates are read automatically from headlines — verify on the official notification before acting. Tap 🔎 Reference on any deadline to see where it came from. Priority levels (P1 Critical · P2 High · P3 Important) follow a CA-firm compliance ranking and are assigned to headlines by keyword — a guide, not legal advice.
+</footer>
+<div class="modal" id="refModal" hidden role="dialog" aria-modal="true" aria-labelledby="refTitle">
+  <div class="mbox"><button class="btn mclose" id="refClose" aria-label="Close">✕</button><div id="refBody" style="display:grid;gap:10px"></div></div>
+</div>
+<div id="toast" role="status"></div>
+
+<script>
+/* ======================= CONFIG ======================= */
+const CONFIG = {
+  // Tried in order. All three serve the same index.html that the CA Live Update page is built from.
+  SOURCES: [
+    'data/feed.json',
+    'https://ntf24052405-commits.github.io/ca-news/',
+    'https://raw.githubusercontent.com/ntf24052405-commits/ca-news/main/index.html',
+    'https://cdn.jsdelivr.net/gh/ntf24052405-commits/ca-news@main/index.html'
+  ],
+  POLL_MS: 5 * 60 * 1000,      // how often to re-check for fresh news
+  FETCH_TIMEOUT_MS: 12000
+};
+// Offline fallback: the deadline-related headlines available when this file was generated.
+const SNAPSHOT = [{"t": "Income Tax | Transfer Pricing: Accurate Data Converters Exclusion Upheld by Karnataka HC", "u": "https://taxguru.in/income-tax/transfer-pricing-accurate-data-converters-exclusion-upheld-karnataka-hc.html", "d": "2026-10-31", "ts": 1793448031, "s": "taxguru.in", "c": "Income Tax"}, {"t": "SEBI | SEBI Digital Accessibility Deadline Extended to 31 January 2027: Compliance Controls for Regulated Entities", "u": "https://taxguru.in/sebi/sebi-digital-accessibility-deadline-extended-31-january-2027-compliance-controls-regulated-entities.html", "d": "2026-10-31", "ts": 1793445101, "s": "taxguru.in", "c": "Markets & Regulators"}, {"t": "Supreme Infrastructure Nears ₹2,200-Crore Debt Resolution; NCLT Sets October 31 Deadline, Akshat Khetan-Led AU Corporate Advisory Plays Key Role - The Eastern Herald", "u": "https://news.google.com/rss/articles/CBMimgJBVV95cUxOczZDTlpaWkNKVU1lbTNzUzd4dmpYUkpnYTVNUnZmVnVkYVlidFRUaVdfRjcySU5hWDF2ZFAzTVl6WE8zN2ZpLUR4d1R3cTlrMGdqenN3MW9Na2VBOFkwYjFrSHM1MzhWUGNqbnNVN2NlSFdUN3ZlZDNtU2VyR2lFOWR4UjR5enNrNWUwWkU3QjRLSzhuSjBWTUt3bGp3UkdjendzNDRnSGt0bUp5Q01OYkw1ZmtMX1dRLVYxU0hGTmFVSVZNYTN4Q2EwZUNaSmFBZ1dOQ3JGeGxQMXY4MFhKekdpVXJFcjZNSmloTF80RzhLR2M4VnNVSHZsZmM0SUtMa3p0YnlWczFiYTZoSUxWbC1oRE9QRDVDWmc?oc=5", "d": "2026-10-31", "ts": 1793444209, "s": "The Eastern Herald", "c": "Companies Act"}, {"t": "India Financial Updates: CBDT Extensions, GST Revisions, and New SEBI Rules Effective November 1 - The Sentinel - of this Land, for its People", "u": "https://news.google.com/rss/articles/CBMi7AFBVV95cUxPMWcxZnlwbF85N09ZQzlTQXpFLUFrV0h6RkdZNW1ESjFWZHV3S1Z3Y3AtSmFxTjRGNjlrVWhfX05sUEN0aXZ2TmkwTlFEWkZwZDhKZ24xeVR4WHl1eDBiNkFOOHF2andMOUREcGdyclREOFdxTkhIQXZjcFlhREhXc2ZCdE1qb0dFNnhVQ2VGbnpDQk13bXJLTTJrcE5raVQtWUM0V1hwWkpPaHFrNXFNZVowaDZqQzY2VkZlWjNNN2hjMGdSUFZoOXAzRndQODBiZVAtQ3VLYlhJR2k2dmRSNjl2V0VVN2ZtNTQ1ZdIB-gFBVV95cUxQbTBJMXFDUkNSZWxXMjVYQ0tXb2lzeVdFNHZpZV9TUC10VVlwbHpTa0dwNV96RHY4akw5NUlWTzJUb1JrYlozQmNSQnBfT0g1TnI5YXhtc19kSi1XQzMzRlVHc0ZibWlHSXF4Zjk3ZjU4enlpa2lVOUNsRllHSmF2cW9heUpFNmZiVWdUN2NSZ0w5RHJ4cjh5NDJSRzZZYWQwRnI1cmxKVGl2Y1ZfR2gtSmFfLU1qUXRaRXN2eDNkMm1acVhaV0JoTDVzTlJCbU9wWGNKd0pPRXdudUwxcmZLV0xQcTZQNDdFejlINWc3NUgwZDl2bDNsVmNB?oc=5", "d": "2026-10-31", "ts": 1793435319, "s": "The Sentinel - of this Land, for its People", "c": "GST"}, {"t": "Custom Duty | Government Extends Customs Duty Exemption on Cotton Imports Till 31 December 2026", "u": "https://taxguru.in/custom-duty/government-extends-customs-duty-exemption-cotton-imports-31-december-2026.html", "d": "2026-10-31", "ts": 1793435038, "s": "taxguru.in", "c": "Other"}, {"t": "Corporate Law | Reassessment Initiated Before Assessee’s Death Can Continue Against Legal Heir: Delhi HC", "u": "https://taxguru.in/corporate-law/reassessment-initiated-assessees-death-continue-against-legal-heir-delhi-hc.html", "d": "2026-10-31", "ts": 1793425217, "s": "taxguru.in", "c": "Other"}, {"t": "Corporate Law | Section 10B(8) Opt-Out Declaration Must Be Filed Before Return Due Date: SC", "u": "https://taxguru.in/corporate-law/section-10b-8-opt-declaration-filed-return-due-date-sc.html", "d": "2026-10-31", "ts": 1793424308, "s": "taxguru.in", "c": "Income Tax"}, {"t": "Why Godby wanted to make a statement in 50-10 win over Lincoln - Tallahassee Democrat", "u": "https://news.google.com/rss/articles/CBMi3AFBVV95cUxOXzNZWUpMNElnU0p2MGtubWdJSVNfX0Z0YnhxNWdFQzZ2NTRQanUycEpNaG4wQjlKc3Jqc05tNm1XWFdMclN5RFBvWnBjZm5CT1RJUUhZX2NQSmVSbTlNdTlYU3hKUnc5a2s0SHJRSFYxODJEVFpiNjBfcHVXUFl4S3Nlakd4MUdJNHR4YUVCclFfWHJCZVRzckJDbmw4MHoxemFGQldnMkt4cEdLTXppZktzRkZySVJtVExkNEpwYkRNRlpOaFNKR0htYVVlbXEwdHgya3BISlJSdTlU?oc=5", "d": "2026-10-31", "ts": 1793421720, "s": "Tallahassee Democrat", "c": "Other"}, {"t": "Corporate Law | Pre-CIRP Lease Cancellation Not Protected by IBC Moratorium: NCLAT Delhi", "u": "https://taxguru.in/corporate-law/pre-cirp-lease-cancellation-not-protected-ibc-moratorium-nclat-delhi.html", "d": "2026-10-31", "ts": 1793421504, "s": "taxguru.in", "c": "Other"}, {"t": "SEBI eases FPI KYC norms, extends review cycle to eight years for eligible investors - The Financial Express", "u": "https://news.google.com/rss/articles/CBMizAFBVV95cUxOYnFCcEFja0w5N3ZrRVBPM01RVUtaQk0tUmxwQVRTc29vc2lRVHMyTExpb0lOMDZoWmtXeFpSeGJpQWY4anRnRGxwcWNSanRYZXo5Y2lrMDR1b2phOGVjR0RDNEtUR2FsUDJ5SVE5NE9VZTktQjlDSlBSLU1UWGFwWU5RUlA5dWFNb2hYVWR2Zkxzdi1lek55V0pKTi1IVXlMREFOdkNpRW5ZeGxNZS1GcEZCc2xEUnoyUXlHNWtHeGJoaTJMQVJJcHdSNTDSAdMBQVVfeXFMTzVUYjU2Rm40M280aEJJYW51NlZNREgwOF9vMlVSbVFzQzZBQy13bzVPY1dOakpxdmJwSGpmVGNQbS15dFhBVkZrbEtiU2lLTGIwM1c2ckNPS29nU2E3MXJEbXJUUmRBVU1oTFdWVUs2Qnk5SkV6SUR6c2VCZERwbFBTdk1qVEJiSEduYlFRZHZkcEJHaTVWUDdqMkhobkRWRFBHbk5DaF9udm16Ry1TcjVLXzd1TFJlQXd6ZjlYZ01sTXU1TEpHV3NTd3dzQWNabXZEcw?oc=5", "d": "2026-10-30", "ts": 1793370447, "s": "The Financial Express", "c": "Markets & Regulators"}, {"t": "Melaka polls: MCA to contest four seats instead of just two due to winnability, says Ab Rauf - The Edge Malaysia", "u": "https://news.google.com/rss/articles/CBMiUEFVX3lxTFBOcjJFbE9FZUlDX1RDa0dvZlY5c1NSRXEtQ3d5dGdXaGI4THVkSEZ0V2d2cmduaUU2QnZqcDBYT1YwUWpjSEJ1RnBRSnRiN1dO?oc=5", "d": "2026-10-30", "ts": 1793369356, "s": "The Edge Malaysia", "c": "Companies Act"}, {"t": "Sebi doubles FPI KYC review period to 2 years, extends longer cycle to 8 years - Fortune India", "u": "https://news.google.com/rss/articles/CBMiywFBVV95cUxPRnpiY1BsdXNhYXR2QzcyNU1ZNE1UZGJmSEw4V1pzUGlSYndpVnNFT1VyNWdmSjg3X2pYWkhOM3c3STFxU3hnakVrcVJLWFhxMmI5WF9zODRVWDJpUlpWeFZKWVUxOEdOdE4xWUZ6b3BPLXhYbEVMOFNWSjhpWU1CQXJkY3l1YWNIZUhWTXMwdzFJMHBlN2Nld1J1YWNuRWk4VHRnTE56aTBDTjZWVmdnRldxeXpLWk45LUp1Q0h3R0JMOWdUeDNNVnNqY9IBywFBVV95cUxPRnpiY1BsdXNhYXR2QzcyNU1ZNE1UZGJmSEw4V1pzUGlSYndpVnNFT1VyNWdmSjg3X2pYWkhOM3c3STFxU3hnakVrcVJLWFhxMmI5WF9zODRVWDJpUlpWeFZKWVUxOEdOdE4xWUZ6b3BPLXhYbEVMOFNWSjhpWU1CQXJkY3l1YWNIZUhWTXMwdzFJMHBlN2Nld1J1YWNuRWk4VHRnTE56aTBDTjZWVmdnRldxeXpLWk45LUp1Q0h3R0JMOWdUeDNNVnNqYw?oc=5", "d": "2026-10-30", "ts": 1793366719, "s": "Fortune India", "c": "Markets & Regulators"}, {"t": "TNPL appoints V Arun Roy as Additional Director effective Oct 2026 - scanx.trade", "u": "https://news.google.com/rss/articles/CBMivAFBVV95cUxOS0h2bHNPcG9iN3Azc181SnF5QTRMaDJXUlJVb2hfUnBJLTFCMXlaYjg5WEZyWHF0VlNJclJ2UmV0b09ZNER2Vy1FQXE0SWlHYkJfemVDa2VvMFNGaUM1Y2F5QW1kZFNFQnVoNGY2SlVhVVBuZk9tel9WOVVjTGUxYkZpNnJXWTBsZFg3R1dHTG5jTXptVWs4NmxwN1FJcnpFREh0S0pHVGlCQndvN0MyZ3FZWkVUeTE5VnJPTg?oc=5", "d": "2026-10-30", "ts": 1793362805, "s": "scanx.trade", "c": "Other"}, {"t": "SEBI eases KYC norms for foreign investors, extends review cycle to eight years for eligible FPIs - ANI News", "u": "https://news.google.com/rss/articles/CBMi4AFBVV95cUxNdlRFYjBLSGhYTnBVLVp5VGhyTi1WTkRXZmdvR1NMNmFJS2lZanFmUTAxaXIwSHBlc0hSN0p4V3RaMkFmSjZvRjZLVkVlZThwcXFaV1c1NHpGUjhpeFVqRHdtQVkzQkJrYUVITGpmT0FzZ2c4UTN4S21TWld0ZnN3SC14dWZmX1FMa1l1dkJPZUNqYmUwdjZMX1I5UWUwd1R6Q0Z4MXhlbHZBSkVENklMRHNuRjJBZnJPb0ZTRWc0WF9LdUFnM2xmblN3clNINXNHYlV6VDczX3RRWUhRNU8xSg?oc=5", "d": "2026-10-30", "ts": 1793361840, "s": "ANI News", "c": "Markets & Regulators"}, {"t": "Supreme Court Says NCLT-NCLAT Staff Recruitment System Completely Hijacked by MCA - TheWire.in", "u": "https://news.google.com/rss/articles/CBMitAFBVV95cUxOMU5mcS1BeDc0NzZ4NWVOcjZ0MXhiNFZaT2JrMlRPdkVoZ0JGRU9SWnBKRWVDRHFZR1FFWTZiTzAtTzBINDJXUExJUVQzWnRhV0lhWVQzMmRLM05ta0FkVG9HdkdfdU1DQk95Ynplck83NHo5MG1oUXJUM01OR1JQLXRZdVc1Q2lVb1FuelRiLU04anJFb01TaTVycXI3Q21CMnljTlEwMEM1NmhCYWlPY3ZzU27SAboBQVVfeXFMTlJOeUxzSmpSM1Yxdkl0eTF4bDRkUEFMYWUwSjVBNmxBTElkVlFYVWJBS0pKdXNQWHdsWFVqY1U2Q01tQVBBbHk0TUJXTjZvRjhfVE90ZDdvYVB0Sm9iZEhfN05EajBTX1Fmdm1uX212a3dPaEFuLWtyQ3lZeTBDMTZROVZEVHFreXcySmJlVnk4eGFzdDBMaTF0WTVBZHpUcVA0V2JSeWhGWXduMkpoMXhvMFBzc1ZzSW5R?oc=5", "d": "2026-10-30", "ts": 1793349331, "s": "TheWire.in", "c": "Companies Act"}, {"t": "November 2026 income tax calendar: Check key deadlines for TDS payments, tax certificates and ITR filing - Livemint", "u": "https://news.google.com/rss/articles/CBMi_wFBVV95cUxNelZXb253d2dxZ3h4S2pLdEtaU0FCNV82cTJsUHNudmc0em00d185NTJqQi1nMG02dzFwOXY1bGoxbTc2cjRXM0lkcjVEQmdzWUx4bFZpLXNGNzVEWjJXdGg1b1FJbWFxa0hETjVSMUQ0cEtQZmZVNlNBbzctWjh2MlRvR21vSW9VSGpqZ2RKb25CZjd3S3VVVHJFcjBhYm5oVVUzdVpXQXBNaEJwRlV2Q0NRamJIbUN0TllITE9YSXJjdDF1TW1vZ0dhTkhlQVlJZmR1WEFqLVVtNVlva25pSVJjVXVyM3pYaFU3LVc0SGo1WS13d1YxOXpQYmZrN2PSAYQCQVVfeXFMTXNlNmdDV3VwSlNBRjJwd3h0ZHFlbHZBYVFLdkFSb3pBaVZGdm5Rbkp6el82ckhBZm9kX2s4RzBoalprRUdtdUhhWTZFVUgyOU9JNU5WblZILWp3VTlOMGY3dWhkZmtGcWJQTWh5SW1sQ0NYZGszMHcxZHBhaWhobUpYa3VoMlVBSEZhbDJVSGZ5VE9ZT2lqNnFPS3ladEU0SE1zNFZ3VzZNZVVTR3lIS1pLbWxWTV9CYTNhSy14TEdnOTBld0x1ODVDVGI3bWlKM3lnM1Rnb2QyVlJHNlhpMXRCZHloS1RqYXNwM1VZTmRKTTNIcWIyOGtnUmtwdXRSenhmZmM?oc=5", "d": "2026-10-30", "ts": 1793343475, "s": "Livemint", "c": "Income Tax"}, {"t": "Company Law Tribunal \"Completely Hijacked\" By Corporate Affairs Ministry: Supreme Court - NDTV", "u": "https://news.google.com/rss/articles/CBMi0gFBVV95cUxOczREU3FGRnNtcDgtMWFjLUtwdmtVeGJTR0xTdUlTVXdvZ1cyOUVRWXRuekdQbkhZNFowa1B1OGJLZWVUSmFaN1g1UjRsYVNfUFk1Q2xkZmhJTXRzRTg2NVFjWnpwLUVXdi12YmlDTjBZRzY2MjRENmo4Sm9zemdLcEw4T2hNeVdHSmpCUmZyZGtaal9iRnRYRlVvTTVXNUltRVNiNW5DVkJqMUszT2QweTRNMk50MmdzVW1UWkpMSnFsMklQWk1idTVnWkplWWlJTUHSAdoBQVVfeXFMT2lQSmlzTG9qWW5feDFTU1JxeGZuMkRGY0w5NE9wNS1WamdqNHQzYnBRbE9zMUJtXzFpSnZXYzUxRWVwT0x2MmNxUm5HRE8tQ0VGaFMtTFpLY3NxQm92STMwaDFnenUyQUdoNlh5bWpvUEpZLWtBSFdQenJGSDJtSTdoc1FQY3lOYTRXVDJ3eW03cE1URTFackdRWWtfQTV1N3BWTWFzU2pGOE1MVDM0blJ3VHNjR1B2ZUxUSjFtUlEtSnhQbnhtNU1RYmZibjgyUDc3M0RxdjF2MGc?oc=5", "d": "2026-10-30", "ts": 1793331656, "s": "NDTV", "c": "Other"}, {"t": "TDS Due Dates for FY 2026-27: A Month-by-Month Calendar for Finance Teams - CAclubindia", "u": "https://news.google.com/rss/articles/CBMiuwFBVV95cUxNTjhCOXg5THozR0hjRHNYRXpZNE1CYzBTaTVqVlNibE9weVNwSVlFSnk0b3A3UDgyOUtxem0tTFRfY18zTmVvTjd2Qmh4ZDluZFNmMDZyZ25zUE16N0dsQ0d6Nm1ibjFaU3BoRnl5S09HWEJxM1dsdDhPLVpoUmNHRHhhZVFPNXhuRFdncmV2WkJQek5DdWdCeDkwaUc0emRrSUFvTFMxQm53cERtcW0wZHNfVjNFc292LTI0?oc=5", "d": "2026-10-30", "ts": 1793330460, "s": "CAclubindia", "c": "Income Tax"}, {"t": "NCLT, NCLAT 'hijacked' by corporate affairs ministry: Supreme Court - The Economic Times", "u": "https://news.google.com/rss/articles/CBMixwFBVV95cUxPZnNTcERoVUVvX0NCMmxOSGVzM2lzNlBJM1JoRXpCSG5oZ0JIdk40OGlPZmd6QXVkY3BQUktWbFpuaVJIRUFHSGJtWnNXeS16M096RVFtVzhJbUlpbU1rdnRIdVBjX284cGJOTlR2X1NZTUJ6QU5CRl9JMzZSZVpydmVaVEV0Q3FkWG5WbTdDVVVDSkw4ZFBQNUhLd3NpTDVMVzd0bEJ3S1VWQ0FjTzZxX1dsYklfNXJ3U19aM0VHelNnUGpVTEZv0gHMAUFVX3lxTE9ZZnR0SGFkS2Rpa2lMRmFhM0JWNU80OTN6UVVfc2pTaWc5N1diRmZCWlVPWTIxTUhqZGQwQlRBSFhiXzJVMTZPZ3JNdlR3VWpDMkR6c3F4elRubHRfQ0RqbFdwbWJvLTlYN09QU2ZrY21GbmtvRjBrQ0hQSnNGRFRXZU4ta2tXNUV4RE5YVUxlZWZBQkM1R2h2QV9nc1RrQm96UFJfWkFLc0NNSDBFUGQ0VXBkZW9PWHJCeUY1amZRMnVwdWRGclNNaVBrWQ?oc=5", "d": "2026-10-30", "ts": 1793327677, "s": "The Economic Times", "c": "Companies Act"}, {"t": "National Company Law Tribunal administration ‘completely hijacked’ by corporate affairs ministry: Supreme Court | India News - Hindustan Times", "u": "https://news.google.com/rss/articles/CBMiswFBVV95cUxOMWZUekY3blI4eldjS0pveVAwUW5UMkItODdReDBnR0ctcG1NVU9wdzczNFBWTGdpT2M2bGJ1THd1LTZfZ0s3WVlCNk9IUDVxeWtkd2tfUmRmbGY5S0JDRk5pbE1GdUI3TXBQOERWbmh1UmxoV2NKNmNHYXIxZ3ZkWlNiLVBadGxBbnVXeDVsRlZ1d2FUTlJxUi1tY3lBWWlwek1Rb3c0a0FtYVRfUW0tU0R5TdIBuAFBVV95cUxNaGpmUWtySnhaSktiVC1GMTBfOFJJbVhUalhsRmRiNFpIQ3BXbjBDTkFQNFJ2NDIzVkQ1ZDlSaVZ0UEZaTW5lSkQ1S0E0UW9BQVFMNnFsNGs1eWVwS1dJS3N5Z3ZNNHlEY05tdjNRbEExZEdiVy1QYVhEaWQ4bjg2enoxYno5YlVUSVNQVlR3NE1WVWpFcmhsaWtxU1ZibWh4VENPNjd0cHdFSXozZGM2NGVCWHM4cjNj?oc=5", "d": "2026-10-30", "ts": 1793321269, "s": "Hindustan Times", "c": "Other"}, {"t": "Supreme Court: NCLT completely hijacked by Ministry of Corporate Affairs - The Indian Express", "u": "https://news.google.com/rss/articles/CBMixAFBVV95cUxPdE1FZWtqWUs3Tld3U0VYRDRNMmdKalBXLXJITUQtRzJSOWsydXB5VHBvR0wxRkhlbUY5cERsMW93VkVidjNRTUFfWDR6RHVsSWJ1ZDNZWW5zTURHNEd5b0MzYUdNV0MtbS1wZGhBMHNmWFBzUG1kUGZwVGxDWmxva1R2WW9IZk4ySTE3YmpBb05VUWhXSlR6ODQtNVMzZExGbFM4dHRvUzI4dG41X2ZTS3hnU3lNQ0lSLUh3c3h1bzFkSVNw0gHLAUFVX3lxTE5PRDctZkdmS0k4NHZUMFlWUUxmOFJEcUJMSUMzWWhrOEVGaVpoRVE5emJ5ZW8zQUZ5TnVxcmU1a1o5VnRBNXplVjBDc3RRVVY3aXpWSlhSVTh1NVVSdl8zV1RrUERSd0xwTGhfYnM0WXl6TGM0WW5hd1hpOGF4TkxybVgzOF9kTG13dW9iaTR3SjlFMm5vbFBHYTMtZkZZSWJ1NXZTTmp6Mkd1MW9uVTBlSkFqYXVidTBWSXR4RG9XbjhRVjZjWjdna0tB?oc=5", "d": "2026-10-30", "ts": 1793316339, "s": "The Indian Express", "c": "Companies Act"}, {"t": "NCLT, NCLAT hijacked by corporate affairs ministry: SC - The Times of India", "u": "https://news.google.com/rss/articles/CBMivAFBVV95cUxQLTM1UVBaR1JIcHNNRm5ieW1udG5XdzRTRnZ0SUhUMUpMU0tlZ0MyaVU3cEpRaXVEaHotbFdNeGE2aTFhUTUybFVOVFdvV2JPNlh3RlJsYW50eE55ZkZqZU91bkVsYXl5ckJCZFpjQlR6MTUxN0Z3ZUY3TXlmdmFlcHgxMnVmUzA0b1VVT0JKZVAtTVFaRml3Uk9NM1dWWXE5Rm9OTDhOTjVMUUM4VU0xcVM1OUIwUUk0M3ByZNIBwgFBVV95cUxPSHEwYjJnQkxSdjBvZFFtQ1VZOEplNjR2M2JPeU1kZUhlRzRtRE56enVvWDJzRzkzZFlXb2pVYmRGVlM1TVFwT2FodnJvcGwzaUFSUndtS1RqYXNLSFA1V0I2d3ZrQ3d4MUttVm9JZ0lXeTV3ZUMySXRPbS1DUEVLZm5QMzZwVll5VHU0WXdRZE4zMWFSTWdEaFJsa0tRZmtYWEVDQlV5M19PZ0VGVUpaTEJ1d0pJUWZxcVFDYUxhV1ltZw?oc=5", "d": "2026-10-30", "ts": 1793314500, "s": "The Times of India", "c": "Companies Act"}, {"t": "Sinn Féin TDs interviewed by police over Garvaghy Road protest - Belfast Telegraph", "u": "https://news.google.com/rss/articles/CBMi1gFBVV95cUxPSGJmSXZTU0dhSm9wdFQ1ZUtXc3o1U3ZtVnl2VDV3RGllN3ZKeUhVbF9oVzlJYUd1VFI5cFYtbFZuN21wVjBfeGo1cFFXdmNSc1RiLUNSUjdHdUpjUlNRSWhueWhtcTFXOVB4TFE1d2JoSjRtamdHYjZXTlY0NkFyODl0bHMwUVBlVzNGeUUtLWVHMzRmSWg5Um5SUF9uYlVMd0hvZ28tSktLdGVfSEpLRHQzMG95TmVoM0E0cDR4SlM5b2Q0blR2SldzQ1h1MEh5alBaV3NB?oc=5", "d": "2026-10-29", "ts": 1793293581, "s": "Belfast Telegraph", "c": "Income Tax"}, {"t": "NCLT extends Supreme Infrastructure scheme deadline to Oct 31, 2026 - scanx.trade", "u": "https://news.google.com/rss/articles/CBMivAFBVV95cUxPel92ektnWE5acHhMckpDbmRvY1lLNnMtWnREOFFfSDRyZkNnWXJPTjhIVkNobzlOSUhTanJjNHZVdlh6b2hWWWFxQ3UtVml0YnlVNXI0VWdoNmZmZTZCRTJveEh5ZHZqeno3d0FjNXA5dE0xSWx1UlpfTVNrTExvdkVyS19la3Y4XzV5bXdUMjdoZjZpc1ZUMXpXMGRqaXl3RXhSMGZDMWs1SkZvbHpPOXljZzVpaXl2RWN3NQ?oc=5", "d": "2026-10-29", "ts": 1793285464, "s": "scanx.trade", "c": "Companies Act"}, {"t": "Government Grants TDS/TCS Exemption on Payments Received by International Rice Research Institute (IRRI) under Income-tax Act, 2025 - A2Z Taxcorp LLP", "u": "https://news.google.com/rss/articles/CBMi5wFBVV95cUxNdlNmT3oyamJjY3NGWS04Ym9zNjJYN2wyVnRnUm1DeWNMTmlUcTZ2dl9XalRrWWVkeFQ3VGlGWFV2a2V1NEd6WGxjZnVWVjJkeFI2Y0x0cGlkWkY2UG1xU0t6UmlRaTA0NWlCRHk0RFRuWDBnNkdZeWdvY0tWTkZYTGV2WGh0dFdSQXZCS3BWNTAxZGRrWDFmREFTQ0tkcXFISmVlTUtlQ3JNc1VUVUVyaGVlS1czd0Z5MHFuYkw1UVdhZDZlWk5xdHFqa3pWN3JDYkNnaXpOTXJUQi1SQ1Qza3UxMmpZakU?oc=5", "d": "2026-10-29", "ts": 1793282695, "s": "A2Z Taxcorp LLP", "c": "Companies Act"}, {"t": "NCLT completely hijacked by Ministry of Corporate Affairs: Supreme Court - Business Standard", "u": "https://news.google.com/rss/articles/CBMi0gFBVV95cUxOSi1KUS1xaUdjaHg5dEo0ekZ4OU5tbVFPbmo2X0lkcUpKdVh2YmpzOUZLYkpKYnNCWmlEcmI1S1phYzZnTEcwRmJLZGw3V0NkZTZoYWZDTXByTVItSk9Hb2FSQ2xRU3dwTXkteGZhTlV0TUN3U0F1WjNjM2J4WG9KdkZTN1RrNWt0U1dPLTFUVGF6NmM4M01qZWU5UFQ5SER1QXI0RTRBd2tBUkJvcWtyUGhmOUJvNVlIWlZNMDlaaUUwZXIwNld0UEFfSjRUWTJfZVHSAdcBQVVfeXFMTUFyYklLRllUOVo4WXdJRU9NNU1vZ1pKMjZocE5Pa2I1T0JRWS1NdEJsMXZ3RVFyVjdFZGR5ZTJSRmhRcHJiRjlwNjM3WGN2OFVhQ0F0Mzk4aWVaWFJVLUN6VExZUTB2eUpqQzRvYUVPOFJYd0tTcXl2al9FWWVYZXpEckVOQlRjNFN3N2ljMTU0UV9vSnA2eTBWcHlVQUJaSm5GUXZGLUQ1aE44Z3kwOVFaWlB5bDZGQnBxMm93R3JzTHlKaFYwbmF6TENkUzJRR0xHMnNmams?oc=5", "d": "2026-10-29", "ts": 1793282526, "s": "Business Standard", "c": "Companies Act"}, {"t": "Supreme Infrastructure nears Rs 2,200-crore debt resolution; NCLT sets October 31 deadline - Moneycontrol.com", "u": "https://news.google.com/rss/articles/CBMi7AFBVV95cUxNMEVVb2Z1MDVKdERCR2hmLVdxZEJneW9WTEFIUVA3dy1Da0JLV2QwYUNMQmlQTmpFSkthd1BKLVlCYVQtVUpPa2pMd2VxTUszU19yZXRPYmQtWHRsaldhQUhyejZwNUZBb3RlbzNmMGlfdDc0YTJlS0otZVZtZ29Hc2JWWGtqN1dTODB4bnF4Wm1nczd5dXAyTk5DMjV5dDdNczgzR3hXQ21LaGFHZGhjekJUVFQ4UW9wYkx1TUh0MUgtMUtXam5qYWdNcVpnYlpQOG1rMWQyWThMSjA5eGg5NFVuTE5mXzRHa3Fac9IB8gFBVV95cUxOaXRJNU5FOWQxelRWbG53aHRKMDIzVHF6c0dGU0lENGsySmZQUERLamRFMHl0WjIyeUgyaEl3S2VTVVhIcG1yWnhxZldNQnYxUF9zOXFpRkFiYlJma3lJekNBRmhGbnJqQUJ2N3RuVXZMNzltX2NnaEpybFd3WTZqaFAxQVdNaFZ0ZlNMUUdVUVYzR0VSdVhOYll2VDBQQXBnRUFjR1lEckJtWmJyWVY1cVNzUkV2QVNSZkJZT0N3U3NEaVNZekx5ejAxVWJTSVlHUEUtT241TUFtR2p2ckVHQ2djODA5ZkVucjR4UVV2Y0J6Zw?oc=5", "d": "2026-10-29", "ts": 1793281807, "s": "Moneycontrol.com", "c": "Companies Act"}, {"t": "ICSI Urges MCA to Extend Statutory E-Form Filing Deadlines to 31 December 2026 Amid Persistent MCA-21 V3 Portal Issues - TaxCorp AI", "u": "https://news.google.com/rss/articles/CBMirAFBVV95cUxNTlRaUGRWWGo2SjZDdWdrZHcteHprUjctcXAxcUZNeVV0Z2JGNFo1cHk2TVg5S3VHLWdYeUNTWjN3ak5HcmZhajh3X0NUdWxTX2pxVzNlaGZwNE1yTnlBSXhqa0JPV1oySjNXNF81M2w0ejZnOFl5NTNFQXRtNzhxZ24xQ2xzQ0t5cGxNbER1elhBTFA0amVJcEFIODNQbDlPTzRhNUhVSmlKU3U3?oc=5", "d": "2026-10-29", "ts": 1793278618, "s": "TaxCorp AI", "c": "Companies Act"}, {"t": "NCLT Orders Liquidation Rejecting CIRP Extension - Taxscan", "u": "https://news.google.com/rss/articles/CBMi5wFBVV95cUxNWGpMSGpSWnctck1vQmRnMV9xcFRTQmtVQjIxZnFfd0l4c3lXb2JXbFNaVW5NQTZzS3k5RXFiS1QtSzRybE9RTjRlbmdwd2NlVW9qbV95WDg4eHprZF9nUWNuR0JiOFdFVzhTMnZnNm03aElwSVpLTkRRQ29JeFZiTkxMU3R3N3ZJemxXUmZ3U1pRbDVlbnltSUoydFpWczFjNGZCTUxKSlEwOFByQ1BIeEozRGo4cV85R1JrX1VKS1hGRVRzNFNwUUdpa2ZUeHRDeDJoXzNnY1BKMUNRQVVPUmxzWXhRNzA?oc=5", "d": "2026-10-29", "ts": 1793276400, "s": "Taxscan", "c": "Companies Act"}, {"t": "CJI says NCLT, NCLAT ‘hijacked’ by MCA, flags concerns over tribunal autonomy - CNBC TV18", "u": "https://news.google.com/rss/articles/CBMirwFBVV95cUxNUi1UVk9kcGFhY0NlaGtiQjFSZ05Hb2dVOEFtQzU4eGoxbEJsQzYwZGh1cGRYT2NHUmEtRDdHMndJOURGdGNNaGVxT1V0cDJxSEJqWWJBcHNRaTJiMFNYYzNSdEcydGR0WGN1SXk3QXU1dFlGMHU4Y3VTRTF1S0ZjMVoydHFtZXZmSWtwOENiZFd0aVJNSkUyX3FTMFQ0NWtHSFFZY0Uxb0VZcFVsS1ZJ0gG0AUFVX3lxTE5tdVRGaWpjSzFTUEd6b1JlVG81LWNjejFmbUVUT28tbDRKd2hCLXJISlRZNjdYN0VVRm16M0lha2tsSWk3eDBmM2QzMjFOUXRIQ2pGR1NRT2VSQ1B2aHBjU0VGeWFkUUhTa3dCcWFqYVdmMm1GTnk2NjI4cWdiYjVfT3JPWF82U1didlFmVEpqMDBBeDI0ZkktNVZSLXlwTUQzM01DWHlNYXR3VWF0dFh6ZHhwNQ?oc=5", "d": "2026-10-29", "ts": 1793267643, "s": "CNBC TV18", "c": "Companies Act"}, {"t": "‘Tribunal completely hijacked by MCA’: Supreme Court seeks autonomy for NCLT, NCLAT appointments - Moneycontrol.com", "u": "https://news.google.com/rss/articles/CBMi4wFBVV95cUxPYVowVDNkcVdVd3NKQjRIQ2V4bzdKUG1IajRhYzZEMTFfMUNvdWZWaFlWUFNnOHp5aUg0dVBaRFpuSnpqdHZJSU42QURfTExyTS1Nb3pkcnNWZjlqZ1RSdnNLWk85ZEZPSGpCLU5GQlg3T0FIdHJvek1QNTg2NW0zelYwaVd3dmMtUV9fMzljUTRSWU44TEJ1ODlwRUlJV1dTVXBwaG9qMlpwQlFtdHp0VTA5ZXZYQjEwN3ozXzhUd2lIUnRPX0xwWUwxdGp0a1EzWmlNQVl0UWc4NmRUZVdSZ3BVVdIB6AFBVV95cUxOYmZibTB1Q3M4cUhkalBraC02aGtwMVdfSHB5VWVvaVVScU9ldzV3M3YzYVRqTkx6VXVCRHBtcDhsN2RDZl9PZW14TG1DM2RGTktlREZIeklOYUhfWllTYVk1UTNVMXVlcllIMjZGMkYwOE44aFdnUncyVnJlS3NXeHZsVWdQUjlQWWFmM1Bia0RkWlJLc2lXWEh2NHRLMUJvNnhvNU5UX3RzbG9yMjdLVHBrUnYzWnJfRFRoYkdESXpOVTI2OXJiM185c2oxRV9ZZE5VeXpoVVplcHFOeElKLUwyZEdfMjBD?oc=5", "d": "2026-10-29", "ts": 1793267262, "s": "Moneycontrol.com", "c": "Companies Act"}, {"t": "NCLT completely hijacked by ministry: SC - Rediff", "u": "https://news.google.com/rss/articles/CBMiwAFBVV95cUxQZUl1Q0EwOUZocXF2M0F1RmhTaElURnNlMDB3Q2R1Y0dCdHpwYkdEdWNlN2s5YXpnelNiZ3VGYWx6LUk5eENCUkpaZ1Uza1YzZlFGN0NVTEJWOGVubmRJVXhITnFtU3U1OFA2LUNxLS1yUzFXcmZfMEdQM1AtYnY0cE5ERk5Ta1lDd25GQktna1V2aDltNmxHLWtyaDB3QWdMNzhVVHNUT2UtaFhwLXFvWFNYUnk4Z1JtLU5LczlyVXE?oc=5", "d": "2026-10-29", "ts": 1793265903, "s": "Rediff", "c": "Companies Act"}, {"t": "NCLT, NCLAT Staff Recruitment System 'Completely Hijacked' By MCA: Supreme Court - LiveLawBiz", "u": "https://news.google.com/rss/articles/CBMivwFBVV95cUxNaDhURFgyWDZOanFaNVBBVHFIQkR6TEl1WFJISnp5eXZtSVc5eG9sRjhNNE95ak9mZ0JUVElwX0pfZ3pRN0VFZG5wZWVLXzJld05SWE45aEF5QUxhUkNMelhlSHJ4T2ZxTnpsNURWc0sxVWxFTi1zU2ZHeldYWDVwU01odUZVQ08zZmFKcGd0SFpzOEVJcG52aXVVZHJ1U2pDdl9IbGFrdnF2aElHLTl1ck9tSVlEdmdJY3hodzU4SdIBxAFBVV95cUxOeXJhcE9XejdrbFlaLXN2X2kwWl9HOENTZXpjWlFIZjRCSWF0YWhfalRlSzdJeElUX1NIa2dVN28wTHFrMFZhZFI0X3dNaG1Od3RxZ1RiWWd4bExYOU8wWkNvLTB1UUVnYkxieW1Semk4VGRwR1RpQkhCbGZwZ0NKMVh2aWJfeHktdjhuUXpybm1GVFROSUZUTGNwNXl5Q1Bjc0ZjSXdfWDdkRGdJeGlXME0wUzRMeVNOX0M2MTRXMWxMZlV6?oc=5", "d": "2026-10-29", "ts": 1793258047, "s": "LiveLawBiz", "c": "Companies Act"}, {"t": "Tribunal Hijacked By MCA: Apex Court Says Autonomy Of Tribunal Is Impinged & Seeks Proposal From NCLAT &... - Verdictum", "u": "https://news.google.com/rss/articles/CBMi0AFBVV95cUxPcFBqT1NHZFBaa09DYW05bnpxR0pYTFUzSElZaFdMN0hpX2lmei1mek5XOHcyQXNlTDh3NUppNEh6UXRPYVZYODl4TEk0T1pPT1YzaExRQU9RZlR6VUw5NE5NV3RFbVZwUGk0YUJXRzktQVJVb1lSa1ctTFZMYUhIVS12Z2F0S0I5bmJEckctbmJmMlJBS0RyUGhQREx0ZDdGTllPc2FzaFViVE8xdzlPaU1RWUR2UkFRR25oeG02c19KbGQyWGFocE9FV3VHSElH0gHQAUFVX3lxTE9wUGpPU0dkUFprT0NhbTluenFHSlhMVTNISVloV0w3SGlfaWZ6LWZ6Tlc4dzJBc2VMOHc1Smk0SHpRdE9hVlg4OXhMSTRPWk9PVjNoTFFBT1FmVHpVTDk0Tk1XdEVtVnBQaTRhQldHOS1BUlVvWVJrVy1MVkxhSEhVLXZnYXRLQjluYkRyRy1uYmYyUkFLRHJQaFBETHRkN0ZOWU9zYXNoVWJUTzF3OU9pTVFZRHZSQVFHbmh4bTZzX0psZDJYYWhwT0VXdUdISUc?oc=5", "d": "2026-10-29", "ts": 1793257805, "s": "Verdictum", "c": "Companies Act"}, {"t": "TCS Return Due Date For FY 2026-27: File with New Form 143 - CAclubindia", "u": "https://news.google.com/rss/articles/CBMidEFVX3lxTE45WTg1SzU2aEZjZVFFZGdyN2FENlo4QnNWNUpGTzBocU1BeFpxRTRqVHNvWElRRk9RNzdqQV9nd2ltZ1ZrMERnd2p3NmtjZ2NOcFJFTUdLQ3pMR25fSTNfQlhmWndUaFRQRWszTHBSMEdPazlo?oc=5", "d": "2026-10-29", "ts": 1793257200, "s": "CAclubindia", "c": "Other"}, {"t": "Mutual funds, life certificate deadline, FASTag pass, ITR due date: 6 money updates for November 2026 - Upstox", "u": "https://news.google.com/rss/articles/CBMi7gFBVV95cUxPbEhsR1o1STZaNGJlODVLaV93UEdWb0FRY0diRnNScVZTcnhndDZCRkNQaTM1R2dEMnZ1TzFBZFltTlkzQzVpVEdqY0dHTWI4UzE4ajdwQkhkTUlFWEVnQlg5Tm5GcldaZ1hyTFBIN3dWS280ZGdzSThWU2VEUEVUT0kyYXlXaFNWU3JvSy1ZRGNXN2g0RTBQU3RITG1vSDhXTDBEY2tnNGl1ZXhITERhRWFrdG5hczJpMXNoeVE0WTlGb1lIeWVZZDlqZlNCajhMV3lfdnh1cjlaeUg4ckhhVG1Zd2tfanV5aGQtUHFR?oc=5", "d": "2026-10-29", "ts": 1793257200, "s": "Upstox", "c": "Income Tax"}, {"t": "NCLT administration completely hijacked by Ministry of Corporate Affairs: Supreme Court - Bar and Bench", "u": "https://news.google.com/rss/articles/CBMi1wFBVV95cUxQRzNkSF9FN2ZnMjgwNldyYnBsaUNEeVBkUjUxa3lUSXJQdGhROU4zelRQNFlfNWtwNnJzZFdrd1hHUldmRWNIWmlTdkwzM1RaQXhUdXR1ZlY3RUN5SE9mNHVob2NaUUxURERKZlVVZDVxWVBDcEx4a1hRb0t3dlgwekE1aG03SmpqaUxVcXBlZE5JcnFqVlh5S2t2V2hYYU4ySzNXMk1haWxGbW5OOGpVN2IyLV9HWU1WNDd6a1RSbThZajlpS2xrcDFPLWphMWNPcXpMZFpUTdIB1wFBVV95cUxQRzNkSF9FN2ZnMjgwNldyYnBsaUNEeVBkUjUxa3lUSXJQdGhROU4zelRQNFlfNWtwNnJzZFdrd1hHUldmRWNIWmlTdkwzM1RaQXhUdXR1ZlY3RUN5SE9mNHVob2NaUUxURERKZlVVZDVxWVBDcEx4a1hRb0t3dlgwekE1aG03SmpqaUxVcXBlZE5JcnFqVlh5S2t2V2hYYU4ySzNXMk1haWxGbW5OOGpVN2IyLV9HWU1WNDd6a1RSbThZajlpS2xrcDFPLWphMWNPcXpMZFpUTQ?oc=5", "d": "2026-10-29", "ts": 1793255392, "s": "Bar and Bench", "c": "Companies Act"}, {"t": "CBIC says GST officers must prove tax evasion intent before invoking fraud provisions - Prop News Time", "u": "https://news.google.com/rss/articles/CBMi0wFBVV95cUxQRExPREhESC1Dc3VwSkdCRnFmVkk3eTE4aklyYmNLTFNseC0yOTdaU3M2dzVaNUNmczJLcUZoREw1MHRTUldxVEhBRE90N0NVN2NObVJqbGNFNDJ0V1ZhUlNZVndtTGlrNjNocDVLSFRaR1JOanZiVlEyNkVtYTJpUHBuN1RlV0FKQVlXNl8ycElvRWpBQjN4cmJaTnN5U3hqMkp2LTh2N1M1SmY3VHJmLUNrX0hFWVZvalBJa1M4cFFVRFIzbjdnUHJjTThrMmw0Y3hR?oc=5", "d": "2026-10-29", "ts": 1793234096, "s": "Prop News Time", "c": "GST"}, {"t": "TDS extended to registered persons receiving supply of used cooking oil, waste and scrap of plastics, waste and scrap of tyres, metal scrap and electrical and electronics waste and scrap from registered suppliers w.e.f. 01.11.2026 - A2Z Taxcorp LLP", "u": "https://news.google.com/rss/articles/CBMiwwJBVV95cUxPaE9DZC1Zb1FQcUZUVGJuOWc2UExHc0QwTWx4aFZ4d3hMLVJGeW8wZkdWS3JPNDB2T2dhZWI0SFBBczQ4SzV6R0tVRXQ5X1hSYnlXRkFFcUJ4VUgxUS1VQXU5bnM3cDBsY0ZfVHdMRTFVMmkyd1k5RFpWTEVGaUVYTFZ1M05oNXVHWm5vNHpJakhqWi0ySk9NQlJyZ1lVVXU0TzBCWmwyM3RReU5sdTJMeUE3MXdFcl9qOG1pbHF3Rkp5cmpOSWlKaWJIc0VqQmV2VlVNR1ZFSlY3LThXUmhGTHl4VFhCemlTcG1CcE8yei1oVUVwTjIxOEwtejNrSVZJYjlmeVZFb2xhZUZzcVJTZk5QT1ZOQVNVVEtITGh3V1NwOWhsYVlfamlhZ1l1bkI5QkJRZzYxU3ZxMFlNU0NNMlVrRQ?oc=5", "d": "2026-10-28", "ts": 1793206731, "s": "A2Z Taxcorp LLP", "c": "Companies Act"}, {"t": "Supreme Court Rules Creditors Cannot Withdraw Approved Insolvency Resolution Plan Before NCLT Confirmation Merely Because Corporate Debtor’s Financial Position Improves During Prolonged Insolvency Proceedings - Raw Law", "u": "https://news.google.com/rss/articles/CBMitAJBVV95cUxQVE1VSk03RlpOZ05odVJsMGVYWXFySC1ndFduRTJ0QUNGV1lfY3ZLa1h2RFVWVkJVZmV2b3p1c0VWc2ZMRTNEeG5rUHVBanM5YjN4a0hsV1lGWFFNVG1wR2NEcGF0VUl2MVRXa01fWHRxMUEtbXNqTDVuV2xuVlNIaDlnV3ctTy14alZQMUFaaWNHQkRwNEh2Vi12QXo1cmtSLTN1UDljYWVFTHlhS2l4cTVWS3hSYVFHcEUwUWM0THd3V3Q2WHlKblQ0aENiMDdsVkVfcmYwVGhpeEJFcFU5N3dRNE5wc3BfamJFZlp5VE55VjdqYmNxcTAxZWlsaUFLWEVPSDhDazRrb2lIbkl0MmFzbGFuWlZOblh0RkZzM0NLVE9OT2REUWF2RTlsa0JGek0wcQ?oc=5", "d": "2026-10-28", "ts": 1793200815, "s": "Raw Law", "c": "Companies Act"}, {"t": "CBIC Announces November 1, 2026 as Effective Date for Sections 153 to 155 of Finance Act, 2026 - SAG Infotech Official Tax Blog", "u": "https://news.google.com/rss/articles/CBMirAFBVV95cUxONVFSZzY1UGE3UnlLT21FcGdBNXphR0Ezb3MtMmJfUFRKUE1naDktQ3d2UzdaOW5nRkIwSFBwSlJpb29lNV9scTV2c1NSVG5DQTRnWDZGTE5ITnY4XzU1R0kzWlRXd1FIYk93UVJfQ3FndG5sM2dsZURLYVRqRHJuZXhqWjVBX1FzYjgxVldHUkdlbGhmb2lrNkphQ2UzSG14YnFQQk1pVU1HbUVi?oc=5", "d": "2026-10-28", "ts": 1793194383, "s": "SAG Infotech Official Tax Blog", "c": "GST"}];
+
+/* ======================= HELPERS ======================= */
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad = n => String(n).padStart(2, '0');
+const safeUrl = u => /^https?:\/\//i.test(u) ? u : '#';
+const store = {
+  get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } },
+  set(k,v){ try { localStorage.setItem(k,v); } catch(e){} }
+};
+
+/* ======================= SOUND ENGINE (Web Audio, no files) ======================= */
+const Sound = (() => {
+  let ctx = null, master = null, armed = false, pending = null;
+  let on = store.get('cd_sound') !== 'off';
+  function boot(){
+    if (ctx) return ctx;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    ctx = new AC(); master = ctx.createGain(); master.gain.value = .55; master.connect(ctx.destination);
+    return ctx;
+  }
+  function tone(o){
+    const c = ctx, t0 = c.currentTime + (o.at || 0);
+    const osc = c.createOscillator(), g = c.createGain();
+    osc.type = o.type || 'sine';
+    osc.frequency.setValueAtTime(o.f, t0);
+    if (o.to) osc.frequency.exponentialRampToValueAtTime(o.to, t0 + o.d);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(o.v || .2, t0 + .012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + o.d);
+    osc.connect(g); g.connect(master); osc.start(t0); osc.stop(t0 + o.d + .03);
+  }
+  function noise(d, at, v){
+    const c = ctx, n = Math.floor(c.sampleRate * d), buf = c.createBuffer(1, n, c.sampleRate), data = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / n);
+    const src = c.createBufferSource(); src.buffer = buf;
+    const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.setValueAtTime(5000, c.currentTime + at); f.frequency.exponentialRampToValueAtTime(300, c.currentTime + at + d);
+    const g = c.createGain(); g.gain.value = v;
+    src.connect(f); f.connect(g); g.connect(master); src.start(c.currentTime + at);
+  }
+  const fx = {
+    tick:  () => tone({f:1400, to:900, d:.05, v:.05, type:'triangle'}),
+    click: () => tone({f:520, to:780, d:.09, v:.12, type:'triangle'}),
+    sync:  () => { tone({f:330, d:.12, v:.1}); tone({f:495, d:.16, v:.1, at:.1}); },
+    drop:  () => { tone({f:420, to:70, d:.32, v:.28}); noise(.25, 0, .08); },
+    // blue: bright rising two-note bell
+    ding:  () => { tone({f:659, d:.5, v:.2}); tone({f:988, d:.7, v:.2, at:.13}); tone({f:1319, d:.9, v:.1, at:.13, type:'triangle'}); },
+    // red: three alarm beeps
+    alarm: () => { [0,.22,.44].forEach(a => { tone({f:880, d:.15, v:.16, type:'square', at:a}); tone({f:660, d:.15, v:.12, type:'square', at:a+.08}); }); },
+    // due today: rising siren
+    critical: () => { for (let i = 0; i < 3; i++) tone({f:500, to:1100, d:.42, v:.16, type:'sawtooth', at:i*.46}); },
+    vanish: () => { tone({f:600, to:90, d:.7, v:.22, type:'sawtooth'}); noise(.7, 0, .18); }
+  };
+  return {
+    get on(){ return on; },
+    get armed(){ return armed; },
+    // must be called from a user gesture (browsers block audio before that)
+    arm(){
+      if (armed) return;
+      if (!boot()) return;
+      armed = true;
+      ctx.resume().then(() => { if (pending && on) { fx[pending](); } pending = null; });
+      $('arm').classList.remove('show');
+    },
+    play(name){
+      if (!on) return;
+      if (!armed) { if (name === 'alarm' || name === 'critical' || name === 'ding') pending = name; return; }
+      if (ctx.state === 'suspended') ctx.resume();
+      try { fx[name](); } catch(e){}
+    },
+    toggle(){ on = !on; store.set('cd_sound', on ? 'on' : 'off'); return on; }
+  };
+})();
+
+/* ======================= DATE EXTRACTION ======================= */
+const MONTHS = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+const MON = '(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sept?(?:ember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)';
+const RX_DMY  = new RegExp('\\b(\\d{1,2})(?:st|nd|rd|th)?\\s+(?:of\\s+)?' + MON + '\\b\\.?(?:,?\\s+(\\d{4}))?', 'gi');
+const RX_MDY  = new RegExp('\\b' + MON + '\\b\\.?\\s+(\\d{1,2})(?!\\d)(?:st|nd|rd|th)?(?:,?\\s+(\\d{4}))?', 'gi');
+const RX_NUM  = /\b(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})\b/g;
+
+const RELEVANT  = /tax|gst|itr\b|tds|tcs|sebi|rbi\b|icai|icsi|icmai|chartered|\bmca\b|nclt|nclat|\broc\b|llp|customs|duty|cbdt|cbic|companies|compliance|audit|return|filing|\bform\b|circular|ind as|nfra|fpi|kyc|\bibc\b|insolvency|\bexam|registration|portal|income|refund|e-?invoice|penalty|annual|dgft|epfo|esic|msme|ibbi|scheme|debt/i;
+const DEADLINE  = /extend|extension|deadline|\bdue\b|last (?:date|day)|\btill\b|\buntil\b|up ?to\b|before\b|cut-?off|expir|\bby\b|effective|window|closing|\bends?\b|postpon|relax/i;
+const STRONG    = /extend|extension|deadline|due date|last (?:date|day)|postpon/i;
+const EXTENDED  = /\bextend(?:s|ed|ing)?\b|extension|postpon|prepon|relax(?:es|ed|ation)/i;
+const REQUESTED = /\b(urges?|seeks?|demands?|requests?|pleas?|calls? for|asks?|petition|representation|appeals? for)\b/i;
+
+function parseDates(title, pub){
+  const found = [];
+  const push = (m, d, mo, y) => {
+    const dd = +d; if (dd < 1 || dd > 31) return;
+    const explicit = !!y; let yr = y ? +y : pub.getFullYear();
+    let dt = new Date(yr, mo, dd, 23, 59, 59);
+    if (dt.getMonth() !== mo) return;                       // e.g. 31 Feb
+    if (!explicit && dt < new Date(pub.getTime() - 45 * 864e5)) dt = new Date(yr + 1, mo, dd, 23, 59, 59);
+    found.push({ index: m.index, end: m.index + m[0].length, date: dt, explicit });
+  };
+  let m;
+  RX_DMY.lastIndex = 0; while ((m = RX_DMY.exec(title))) push(m, m[1], MONTHS[m[2].slice(0,3).toLowerCase()], m[3]);
+  RX_MDY.lastIndex = 0; while ((m = RX_MDY.exec(title))) push(m, m[2], MONTHS[m[1].slice(0,3).toLowerCase()], m[3]);
+  RX_NUM.lastIndex = 0; while ((m = RX_NUM.exec(title))) { const mo = +m[2] - 1; if (mo >= 0 && mo < 12) push(m, m[1], mo, m[3]); }
+  // drop overlaps
+  found.sort((a,b) => a.index - b.index);
+  const out = [];
+  for (const f of found) if (!out.length || f.index >= out[out.length-1].end) out.push(f);
+  return out;
+}
+// choose the date that actually is "the deadline": the one after "to / till / by / before …", else the last one
+function pickDate(title, dates){
+  let best = null, bestScore = -1;
+  dates.forEach((d, i) => {
+    const before = title.slice(Math.max(0, d.index - 16), d.index);
+    let s = i * 0.1;
+    if (/(?:\bto|till|until|upto|up to|by|before|on|from)\s*$/i.test(before)) s += 2;
+    if (/effective(?:\s+from)?\s*$/i.test(before)) s += 1.5;
+    if (s > bestScore) { bestScore = s; best = d; }
+  });
+  return best;
+}
+function cleanTitle(t, src){
+  let s = t.trim();
+  if (src && s.toLowerCase().endsWith(' - ' + src.toLowerCase())) s = s.slice(0, -(src.length + 3)).trim();
+  else { const i = s.lastIndexOf(' - '); if (i > 30 && s.length - i < 48) s = s.slice(0, i).trim(); }
+  return s;
+}
+const STOP = new Set('the and for with from that this will have has are was its into over under new says amid after about their than more also'.split(' '));
+const tokens = s => new Set(s.toLowerCase().replace(/[^a-z0-9 ]+/g,' ').split(/\s+/).filter(w => w.length > 3 && !STOP.has(w)));
+function sim(a, b){ let n = 0; a.forEach(w => { if (b.has(w)) n++; }); return n / Math.max(1, Math.min(a.size, b.size)); }
+const ymd = d => d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+const keyOf = t => t.toLowerCase().replace(/\W+/g,'').slice(0, 80);
+
+function buildDeadlines(items){
+  const raw = [], undated = [];
+  for (const x of items) {
+    const title = cleanTitle(x.t || '', x.s);
+    if (!title || !RELEVANT.test(title)) continue;
+    const pub = new Date((x.ts ? x.ts * 1000 : Date.parse(x.d)) || Date.now());
+    const dates = parseDates(title, pub);
+    const hit = DEADLINE.test(title);
+    if (dates.length && hit) {
+      const d = pickDate(title, dates);
+      const before = title.slice(Math.max(0, d.index - 16), d.index);
+      const requested = REQUESTED.test(title) && EXTENDED.test(title);
+      const effective = /(?:effective(?:\s+date)?(?:\s+from)?|w\.e\.f\.?|from)\s*$/i.test(before) || /effective date|w\.e\.f/i.test(title);
+      // "X extended to <group>… w.e.f. <date>" widens a rule's scope – it is not a deadline extension
+      const isExt = EXTENDED.test(title) && !requested && !(effective && !/deadline|due date|last date|extension/i.test(title));
+      raw.push({
+        title, url: x.u, source: x.s || '', category: x.c || 'Other', pub, key: keyOf(x.t || title),
+        end: d.date.getTime(), ymd: ymd(d.date),
+        extended: isExt, requested, effective,
+        tok: tokens(title)
+      });
+    } else if (!dates.length && STRONG.test(title)) {
+      undated.push({ title, url: x.u, source: x.s || '', pub, category: x.c || 'Other' });
+    }
+  }
+  // cluster duplicates: same deadline day + similar wording
+  raw.sort((a,b) => b.pub - a.pub);
+  const clusters = [];
+  for (const r of raw) {
+    const c = clusters.find(c => c.ymd === r.ymd && sim(c.tok, r.tok) >= 0.5);
+    if (c) { c.members.push(r); c.extended = c.extended || r.extended; c.requested = c.requested && r.requested; c.effective = c.effective && r.effective; }
+    else clusters.push({ ...r, members: [r] });
+  }
+  const list = clusters.map(c => ({
+    id: c.ymd + '-' + c.key.slice(0, 24), title: c.title, url: c.url, category: c.category,
+    end: c.end, ymd: c.ymd, extended: c.extended, requested: c.requested && !c.extended, effective: c.effective,
+    pub: c.pub, members: c.members.map(m => ({ t: m.title, u: m.url, s: m.source, d: m.pub })),
+    keys: c.members.map(m => m.key)
+  }));
+  return { list, undated };
+}
+
+/* ======================= STATUS / COLOUR RULES ======================= */
+// red    = deadline falls in the current month (and hasn't passed)   -> wins, extension shown as a blue ribbon
+// blue   = deadline was extended (falls in a later month)
+// violet = ordinary upcoming deadline (or only requested)
+// gray   = already passed
+function statusOf(d, now = Date.now()){
+  const n = new Date(now), t = new Date(d.end);
+  const passed = now > d.end;
+  const sameMonth = n.getFullYear() === t.getFullYear() && n.getMonth() === t.getMonth();
+  const today = ymd(n) === ymd(t);
+  const msLeft = d.end - now;
+  if (passed) return { key:'gray', cls:'gray', label:'PASSED' };
+  if (sameMonth) return { key:'red', cls:'red' + (today ? ' hot' : ''), label: today ? '🔥 DUE TODAY' : 'DUE THIS MONTH', today };
+  const soon = msLeft < 3 * 864e5 ? ' soon' : '';
+  if (d.extended) return { key:'blue', cls:'blue' + soon, label:'EXTENDED' };
+  return { key:'violet', cls:'violet' + soon, label: d.requested ? 'EXTENSION ASKED' : d.effective ? 'TAKES EFFECT' : 'UPCOMING' };
+}
+function countdown(d, now = Date.now()){
+  const diff = d.end - now;
+  if (diff <= 0) {
+    const days = Math.floor(-diff / 864e5);
+    return days < 1 ? 'Passed today' : 'Passed ' + days + 'd ago';
+  }
+  const dd = Math.floor(diff / 864e5), hh = Math.floor(diff % 864e5 / 36e5), mm = Math.floor(diff % 36e5 / 6e4), ss = Math.floor(diff % 6e4 / 1000);
+  return pad(dd) + 'd ' + pad(hh) + 'h ' + pad(mm) + 'm ' + pad(ss) + 's';
+}
+const fmtDate = ms => new Date(ms).toLocaleDateString('en-IN', { weekday:'short', day:'2-digit', month:'short', year:'numeric' });
+const fmtMonth = ms => new Date(ms).toLocaleDateString('en-IN', { month:'short', year:'numeric' });
+
+/* ======================= STATE ======================= */
+const state = {
+  raw: [], deadlines: [], demos: [], undated: [],
+  filter: { status:'active', month:'all', cat:'All', q:'' },
+  seen: new Set(), sessionNew: new Set(), firstEver: false,
+  live: false, lastSync: 0, nextSync: 0, feedStamp: null, syncing: false
+};
+try { const s = JSON.parse(store.get('cd_seen') || 'null'); if (Array.isArray(s)) state.seen = new Set(s); } catch(e){}
+state.firstEver = state.seen.size === 0;
+
+const all = () => state.deadlines.concat(state.demos);
+const byId = new Map();
+
+/* ======================= RENDER ======================= */
+function visibleList(now = Date.now()){
+  const f = state.filter, q = f.q.trim().toLowerCase();
+  return all().filter(d => {
+    const st = statusOf(d, now);
+    if (f.status === 'active' && st.key === 'gray') return false;
+    if (f.status === 'red' && st.key !== 'red') return false;
+    if (f.status === 'blue' && !(d.extended && st.key !== 'gray')) return false;
+    if (f.status === 'violet' && st.key !== 'violet') return false;
+    if (f.status === 'gray' && st.key !== 'gray') return false;
+    if (f.month !== 'all' && d.ymd.slice(0,7) !== f.month) return false;
+    if (f.cat !== 'All' && d.category !== f.cat) return false;
+    if (q && !(d.title.toLowerCase().includes(q) || d.members.some(m => m.s.toLowerCase().includes(q)))) return false;
+    return true;
+  }).sort((a,b) => a.end - b.end);
+}
+
+function cardHTML(d, i, now){
+  const st = statusOf(d, now);
+  const isNew = d.keys.some(k => state.sessionNew.has(k));
+  const links = d.members.map(m =>
+    '<a href="' + esc(safeUrl(m.u)) + '" target="_blank" rel="noopener" data-sfx="click">' + esc(m.t) +
+    '<small>' + esc(m.s || 'source') + ' · ' + esc(m.d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'})) + ' ↗</small></a>').join('');
+  return '<article class="card ' + st.cls + '" data-id="' + esc(d.id) + '" data-sig="' + esc(st.cls + '|' + st.label) + '" style="--i:' + Math.min(i, 14) + '" tabindex="0" aria-expanded="false">' +
+    (d.extended && st.label !== 'EXTENDED' ? '<span class="ribbon">↻ EXTENDED</span>' : '') +
+    '<div class="row"><span><span class="tag">' + esc(d.category) + '</span> <span class="pp p' + prioOf(d.title) + '">' + PRIO[prioOf(d.title)].n + '</span></span><span>' + (isNew ? '<span class="newtag">NEW</span> ' : '') + '<span class="badge">' + esc(st.label) + '</span></span></div>' +
+    '<h3>' + esc(d.title) + '</h3>' +
+    '<div class="when"><div class="date">' + esc(fmtDate(d.end)) + '</div><div class="cd">' + esc(countdown(d, now)) + '</div></div>' +
+    '<div class="acts"><button class="btn" data-ref="' + esc(d.id) + '">🔎 Reference · ' + d.members.length + ' source' + (d.members.length > 1 ? 's' : '') + '</button></div>' +
+    '<div class="foot"><span>' + d.members.length + ' source' + (d.members.length > 1 ? 's' : '') + (d.demo ? ' · DEMO' : '') + '</span><span>tap for details ▾</span></div>' +
+    '<div class="more">' + links +
+      '<div class="acts"><button class="btn" data-ics="' + esc(d.id) + '">📅 Add to calendar</button></div></div>' +
+  '</article>';
+}
+
+function render(animate){           // animate: 'all' | Set of ids | null
+  const now = Date.now(), list = visibleList(now);
+  byId.clear(); all().forEach(d => byId.set(d.id, d));
+  const grid = $('grid');
+  if (!list.length) {
+    grid.innerHTML = '<div class="empty"><h3>' + (state.raw.length ? 'No deadlines match this view' : 'Scanning the news for deadlines…') + '</h3>' +
+      '<div>' + (state.raw.length ? 'Try “All active” or clear the search box.' : 'Waiting for the first sync.') + '</div></div>';
+  } else {
+    grid.innerHTML = list.map((d, i) => cardHTML(d, i, now)).join('');
+    if (animate) grid.querySelectorAll('.card').forEach(el => { if (animate === 'all' || animate.has(el.dataset.id)) el.classList.add('enter'); });
+  }
+  renderControls(now); renderStats(now); renderRadar(); renderPrioNews();
+}
+
+function renderStats(now = Date.now()){
+  const a = all(); let act = 0, red = 0, ext = 0, today = 0;
+  a.forEach(d => { const s = statusOf(d, now); if (s.key === 'gray') return; act++; if (s.key === 'red') red++; if (d.extended) ext++; if (s.today) today++; });
+  $('stAll').textContent = act; $('stRed').textContent = red; $('stExt').textContent = ext; $('stToday').textContent = today;
+}
+
+function renderControls(now = Date.now()){
+  const a = all(), f = state.filter;
+  const cnt = { active:0, red:0, blue:0, violet:0, gray:0 };
+  a.forEach(d => { const s = statusOf(d, now); if (s.key === 'gray') cnt.gray++; else { cnt.active++; if (s.key === 'red') cnt.red++; if (s.key === 'violet') cnt.violet++; if (d.extended) cnt.blue++; } });
+  const defs = [['active','f-all','All active'],['red','f-red','🔴 Due this month'],['blue','f-blue','🔵 Extended'],['violet','f-violet','🟣 Later'],['gray','f-gray','⚫ Passed']];
+  $('statusChips').innerHTML = defs.map(([k,c,l]) => '<button class="chip ' + c + '" data-status="' + k + '" aria-pressed="' + (f.status === k) + '">' + l + '<span class="n">' + cnt[k] + '</span></button>').join('');
+  // months present in the data
+  const months = new Map();
+  a.forEach(d => { if (f.status !== 'gray' && statusOf(d, now).key === 'gray') return; const k = d.ymd.slice(0,7); months.set(k, (months.get(k) || 0) + 1); });
+  const keys = [...months.keys()].sort();
+  if (f.month !== 'all' && !months.has(f.month)) f.month = 'all';
+  $('monthChips').innerHTML = keys.length
+    ? '<button class="chip m" data-month="all" aria-pressed="' + (f.month === 'all') + '">All months</button>' + keys.map(k => '<button class="chip m" data-month="' + k + '" aria-pressed="' + (f.month === k) + '">' + esc(fmtMonth(new Date(k + '-01T12:00:00').getTime())) + '<span class="n">' + months.get(k) + '</span></button>').join('')
+    : '';
+  const cats = ['All', ...new Set(a.map(d => d.category))];
+  const sel = $('cat'); const cur = f.cat;
+  sel.innerHTML = cats.map(c => '<option' + (c === cur ? ' selected' : '') + '>' + esc(c) + '</option>').join('');
+}
+
+function renderRadar(){
+  const u = state.undated.slice(0, 14);
+  $('radarN').textContent = u.length ? '(' + u.length + ')' : '';
+  $('radarList').innerHTML = u.length
+    ? u.map(x => '<li><a href="' + esc(safeUrl(x.url)) + '" target="_blank" rel="noopener" data-sfx="click">' + esc(x.title) + '<small>' + esc(x.source) + ' · ' + esc(x.pub.toLocaleDateString('en-IN',{day:'2-digit',month:'short'})) + ' · ' + esc(x.category) + ' ↗</small></a></li>').join('')
+    : '<li class="lbl" style="padding:8px">Nothing right now.</li>';
+}
+
+/* ======================= PRIORITY ENGINE ======================= */
+const PRIO = { 1:{n:'P1',l:'Critical'}, 2:{n:'P2',l:'High'}, 3:{n:'P3',l:'Important'}, 4:{n:'WATCH',l:'Other'} };
+const UI = { pn:'all', pnMax:15, tab:'next', fp:'all' };
+// ordered: most specific first
+function prioOf(t){
+  if (/\b(aoc-?4|mgt-?7a?|dir-?3|adt-?1|dpt-?3|msme-?1|fla\b|foreign liabilit|\broc\b|\bmca\b|companies act|\bagm\b|annual general)/i.test(t)) return 3;
+  if (/\b(gstr-?9c?|3ceb|transfer pric|llp\b|form 8\b|form 11\b|quarterly|26q|24q|27q|tds return|tcs return|annual return)/i.test(t)) return 2;
+  if (/\b(itr|income tax return|return of income)/i.test(t) && !/(?<!non-)(?<!non )audit/i.test(t)) return 2;
+  if (/gstr|gst return|gst payment|\bgst\b.*(due|deadline|extend)|\btds\b|\btcs\b|\bpf\b|provident|epfo|\besi\b|esic|advance tax|tax audit|\b3c[abd]\b|audit report|\bitr\b|income tax return/i.test(t)) return 1;
+  return 4;
+}
+
+const MASTER = {
+  1: [['TDS/TCS payment','7th of following month'],['GST GSTR-3B (monthly)','20th of following month'],['GST GSTR-3B (QRMP)','22nd / 24th'],['GST GSTR-1 (monthly)','11th of following month'],['PF payment','15th of following month'],['ESI payment','15th of following month'],['Advance tax','15 June, September, December, March'],['Income tax audit report','Generally 30 September'],['Income tax return – audit cases','Generally 31 October, subject to extensions']],
+  2: [['Quarterly TDS returns','31 July, 31 October, 31 January, 31 May'],['Quarterly GST GSTR-1','13th after quarter'],['GSTR-9 / GSTR-9C','31 December'],['Income tax return – non-audit cases','Generally 31 July or 31 August, by category'],['Transfer pricing report (Form 3CEB)','31 October'],['LLP Form 8','30 October'],['LLP Form 11','30 May']],
+  3: [['Company AOC-4','Within 30 days of AGM'],['Company MGT-7 / MGT-7A','Within 60 days of AGM'],['DIR-3 KYC','30 September'],['ADT-1','Within 15 days of AGM'],['DPT-3','30 June'],['MSME-1','30 April / 31 October'],['FLA return (RBI)','15 July, generally']]
+};
+const OPS = [['GST monthly returns and payment','Daily'],['TDS/TCS payment','Daily'],['PF and ESI','Weekly'],['Income tax advance tax','Monthly'],['Quarterly TDS returns','Weekly near deadline'],['Tax audits','Monthly during audit season'],['Income tax returns','Weekly'],['ROC/MCA compliance','Monthly'],['LLP compliance','Monthly'],['Annual GST returns','Monthly'],['RBI/FEMA and other sectoral filings','According to applicability'],['Internal audits and management reports','According to engagement']];
+const AUDIT = ['Collect client books of accounts','Bank reconciliation','Debtors and creditors reconciliation','GST reconciliation','TDS reconciliation','Fixed asset verification','Stock verification, where applicable','Financial statement preparation','Tax audit working papers','Tax audit report filing','Income tax computation','Income tax return filing'];
+const TRACK = ['Client name','Client code','Entity type','Applicable compliance','Statutory due date','Internal target date','Responsible employee','Document collection status','Preparation status','Review status','Filing status','Challan/payment status','Acknowledgement number','Penalty/late fee status','Priority'];
+const PORTALS = [['Income Tax Portal','ITR, TDS, tax audit','https://www.incometax.gov.in'],['GST Portal','GST returns and payments','https://www.gst.gov.in'],['MCA Portal','Company and LLP compliance','https://www.mca.gov.in'],['EPFO','Provident fund','https://www.epfindia.gov.in'],['ESIC','Employee insurance','https://www.esic.gov.in'],['RBI','FEMA and RBI compliance','https://www.rbi.org.in']];
+
+// recurring dates: [day, title, department, priority]
+const MONTHLY = [[7,'TDS/TCS payment','Direct Tax',1],[10,'GSTR-7 / GSTR-8','GST',2],[11,'GSTR-1 (monthly)','GST',1],[13,'GSTR-6 / IFF','GST',2],[15,'PF and ESI payment','Payroll',1],[20,'GSTR-3B (monthly)','GST',1],[22,'GSTR-3B (QRMP – Category X)','GST',1],[24,'GSTR-3B (QRMP – Category Y)','GST',1],[25,'PMT-06 (QRMP)','GST',2],[30,'Certain TDS challan-cum-statements','Direct Tax',2]];
+// yearly dates: [month, day, title, priority, department]
+const ANNUAL = [
+  [6,15,'Advance tax – 15%',1,'Income Tax'],[9,15,'Advance tax – 45% cumulative',1,'Income Tax'],[12,15,'Advance tax – 75% cumulative',1,'Income Tax'],[3,15,'Advance tax – 100% cumulative',1,'Income Tax'],
+  [7,31,'Q1 TDS return',2,'Direct Tax'],[10,31,'Q2 TDS return',2,'Direct Tax'],[1,31,'Q3 TDS return',2,'Direct Tax'],[5,31,'Q4 TDS return',2,'Direct Tax'],
+  [1,13,'GSTR-1 (QRMP quarterly)',2,'GST'],[4,13,'GSTR-1 (QRMP quarterly)',2,'GST'],[7,13,'GSTR-1 (QRMP quarterly)',2,'GST'],[10,13,'GSTR-1 (QRMP quarterly)',2,'GST'],
+  [12,31,'GSTR-9 / GSTR-9C',2,'GST'],
+  [9,30,'Income tax audit report',1,'Income Tax'],[10,31,'ITR – audit cases',1,'Income Tax'],
+  [7,31,'ITR – eligible non-audit cases',2,'Income Tax'],[8,31,'ITR – certain non-audit business/profession',2,'Income Tax'],
+  [10,31,'Transfer pricing report (Form 3CEB)',2,'Income Tax'],
+  [10,30,'LLP Form 8',2,'ROC / LLP'],[5,30,'LLP Form 11',2,'ROC / LLP'],
+  [9,30,'DIR-3 KYC',3,'ROC / MCA'],[6,30,'DPT-3',3,'ROC / MCA'],[4,30,'MSME-1 (Apr–Sep period)',3,'ROC / MCA'],[10,31,'MSME-1 (Oct–Mar period)',3,'ROC / MCA'],
+  [7,15,'FLA return (RBI)',3,'RBI / FEMA']
+];
+// one-off: [year, month, day, title, priority, department, note]
+const ONEOFF = [[2026,11,21,'ITR – extended deadline, applicable audited cases (AY 2026–27)',1,'Income Tax','reported extension – verify CBDT notification']];
+
+function firmOcc(){
+  const t = Date.now(), n = new Date(), out = [];
+  const mk = (y,m,d) => new Date(y, m - 1, d, 23, 59, 59).getTime();
+  MONTHLY.forEach(([d,title,dept,p]) => {
+    for (let k = 0; k < 3; k++) {
+      const dt = new Date(n.getFullYear(), n.getMonth() + k, d, 23, 59, 59);
+      if (dt.getDate() !== d) continue;
+      if (dt.getTime() >= t) { out.push({ end: dt.getTime(), title, dept, p, note: '' }); break; }
+    }
+  });
+  ANNUAL.forEach(([m,d,title,p,dept]) => { let e = mk(n.getFullYear(), m, d); if (e < t) e = mk(n.getFullYear() + 1, m, d); out.push({ end: e, title, dept, p, note: '' }); });
+  ONEOFF.forEach(([y,m,d,title,p,dept,note]) => { const e = mk(y, m, d); if (e >= t) out.push({ end: e, title, dept, p, note }); });
+  return out.sort((a,b) => a.end - b.end || a.p - b.p);
+}
+// firm warning levels: red ≤3 days, orange ≤7, yellow ≤15
+function lvlOf(end){
+  const s = x => new Date(x).setHours(0,0,0,0), d = Math.round((s(end) - s(Date.now())) / 864e5);
+  return d <= 3 ? ['r','RED · within 3 days'] : d <= 7 ? ['o','ORANGE · within 7 days'] : d <= 15 ? ['y','YELLOW · within 15 days'] : ['c','PLANNED'];
+}
+
+/* ---------- Priority news ---------- */
+function pnItems(){
+  const seen = new Set(), out = [];
+  for (const x of state.raw) {
+    const title = cleanTitle(x.t || '', x.s);
+    if (!title || !RELEVANT.test(title)) continue;
+    const k = keyOf(title); if (seen.has(k)) continue; seen.add(k);
+    const pub = new Date((x.ts ? x.ts * 1000 : Date.parse(x.d)) || Date.now());
+    let dl = null;
+    if (DEADLINE.test(title)) { const ds = parseDates(title, pub); if (ds.length) dl = pickDate(title, ds).date; }
+    out.push({ title, url: x.u, source: x.s || '', cat: x.c || 'Other', pub, p: prioOf(title), dl });
+  }
+  return out.sort((a,b) => a.p - b.p || b.pub - a.pub);
+}
+function renderPrioNews(){
+  const items = pnItems(), cnt = { all: items.length, 1:0, 2:0, 3:0, 4:0 };
+  items.forEach(i => cnt[i.p]++);
+  const defs = [['all','All'],['1','P1 Critical'],['2','P2 High'],['3','P3 Important'],['4','Watch']];
+  $('pnChips').innerHTML = defs.map(([k,l]) => '<button class="chip pf ' + (k === 'all' ? 'f-all' : 'p' + k) + '" data-pn="' + k + '" aria-pressed="' + (UI.pn === k) + '">' + (k === 'all' ? '' : '<i></i>') + l + '<span class="n">' + cnt[k] + '</span></button>').join('');
+  const list = UI.pn === 'all' ? items : items.filter(i => String(i.p) === UI.pn);
+  const shown = list.slice(0, UI.pnMax);
+  $('pnList').innerHTML = shown.length
+    ? shown.map(i => '<li><a class="p' + i.p + '" href="' + esc(safeUrl(i.url)) + '" target="_blank" rel="noopener" data-sfx="click"><span class="t">' + esc(i.title) + '</span>' +
+        '<span class="m"><span class="pp p' + i.p + '">' + PRIO[i.p].n + '</span>' + (i.dl ? '<span class="dl">📅 ' + esc(i.dl.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})) + '</span>' : '') +
+        '<span>' + esc(i.source || 'source') + ' · ' + esc(i.pub.toLocaleDateString('en-IN',{day:'2-digit',month:'short'})) + ' · ' + esc(i.cat) + ' ↗</span></span></a></li>').join('')
+    : '<li class="lbl" style="padding:8px">' + (state.raw.length ? 'No headlines in this priority right now.' : 'Waiting for the first sync…') + '</li>';
+  const left = list.length - UI.pnMax;
+  $('pnMore').hidden = left <= 0; $('pnMore').textContent = 'Show more (' + left + ' left)';
+}
+
+/* ---------- CA firm priority ---------- */
+const auditDone = () => { try { return new Set(JSON.parse(store.get('cd_audit') || '[]')); } catch(e){ return new Set(); } };
+
+function firmNext(){
+  const now = Date.now(), occ = firmOcc(), cnt = { all: occ.length, 1:0, 2:0, 3:0 };
+  occ.forEach(o => cnt[o.p]++);
+  const sel = UI.fp === 'all' ? occ : occ.filter(o => String(o.p) === UI.fp);
+  const chips = [['all','All'],['1','P1'],['2','P2'],['3','P3']].map(([k,l]) => '<button class="chip pf ' + (k === 'all' ? 'f-all' : 'p' + k) + '" data-fp="' + k + '" aria-pressed="' + (UI.fp === k) + '">' + (k === 'all' ? '' : '<i></i>') + l + '<span class="n">' + cnt[k] + '</span></button>').join('');
+  const cards = (UI.firmList = sel.slice(0, 15)).map((o, idx) => {
+    const left = o.end - now, [lv, lt] = lvlOf(o.end), dd = Math.floor(left / 864e5), hh = Math.floor(left % 864e5 / 36e5);
+    const today = ymd(new Date(o.end)) === ymd(new Date(now));
+    return '<div class="fc lv-' + lv + '"><div class="row"><span class="pp p' + o.p + '">' + PRIO[o.p].n + '</span><span class="lbl">' + esc(o.dept) + '</span></div>' +
+      '<b>' + esc(o.title) + '</b><div class="lbl">' + esc(fmtDate(o.end)) + (o.note ? ' · ' + esc(o.note) : '') + '</div>' +
+      '<div class="cdn">' + (today ? 'DUE TODAY' : dd + 'd ' + pad(hh) + 'h') + '</div><div class="lvl">' + lt + '</div><button class="btn" data-fref="' + idx + '">🔎 Reference</button></div>';
+  }).join('');
+  return '<div class="legend"><span class="lv-r">🔴 Red · due ≤3 days / overdue</span><span class="lv-o">🟠 Orange · ≤7 days</span><span class="lv-y">🟡 Yellow · ≤15 days</span></div>' +
+    '<div class="crow">' + chips + '</div><div class="fgrid">' + (cards || '<div class="lbl">Nothing in this priority.</div>') + '</div>' +
+    '<p class="note">Standard statutory timelines for FY 2026–27, counted from today’s date. Extensions, taxpayer category and AGM-linked dates (AOC-4, MGT-7, ADT-1) can change them — verify on the official notification.</p>';
+}
+function firmRank(){
+  const names = { 1:'Priority 1 – Critical', 2:'Priority 2 – High', 3:'Priority 3 – Important' };
+  return [1,2,3].map(p => '<details class="pd p' + p + '" open><summary><span class="pp p' + p + '">' + PRIO[p].n + '</span> ' + names[p] + ' <span class="lbl">' + MASTER[p].length + ' items</span></summary>' +
+    '<div class="scroll"><table class="tbl"><thead><tr><th>Compliance</th><th>Standard deadline</th></tr></thead><tbody>' +
+    MASTER[p].map(r => '<tr><td>' + esc(r[0]) + '</td><td>' + esc(r[1]) + '</td></tr>').join('') + '</tbody></table></div></details>').join('') +
+    '<p class="note">Ranked by legal consequences, penalties and interest, risk of notices, preparation workload and chance of statutory extension. Company filings run from the actual AGM date, not month-end.</p>';
+}
+function firmOps(){
+  return '<div class="fh">Firm-management ranking · monitoring cadence</div><ol class="ranks">' +
+    OPS.map((r, i) => '<li><span class="no">' + (i + 1) + '</span><span>' + esc(r[0]) + '</span><span class="fq">' + esc(r[1]) + '</span></li>').join('') + '</ol>' +
+    '<p class="note">A suggested internal ranking, not a statutory ranking of penalties. A firm’s own deadlines differ from the client deadlines it manages.</p>' +
+    '<div class="fh">Master compliance tracker · columns</div><div class="tags">' + TRACK.map(t => '<span>' + esc(t) + '</span>').join('') + '</div>' +
+    '<div class="acts"><button class="btn" data-csv="1">⬇ Download tracker template (CSV, pre-filled with upcoming deadlines)</button></div>';
+}
+function firmAudit(){
+  const done = auditDone(), pct = Math.round(done.size / AUDIT.length * 100);
+  return '<div class="fh">Audit-season work plan · ' + done.size + '/' + AUDIT.length + ' done</div><div class="bar"><i style="width:' + pct + '%"></i></div><div class="chk">' +
+    AUDIT.map((t, i) => '<label><input type="checkbox" data-audit="' + i + '"' + (done.has(i) ? ' checked' : '') + '><span class="no">' + (i + 1) + '</span><span class="' + (done.has(i) ? 'done' : '') + '">' + esc(t) + '</span></label>').join('') + '</div>' +
+    '<p class="note">Do not wait until September or October to start collecting client documents. Ticks are saved on this device.</p>';
+}
+function firmPortals(){
+  return '<ul class="portals">' + PORTALS.map(p => '<li><a href="' + p[2] + '" target="_blank" rel="noopener" data-sfx="click">' + esc(p[0]) + '<small>' + esc(p[1]) + ' ↗</small></a></li>').join('') + '</ul>';
+}
+function renderFirm(){
+  const tabs = [['next','⏳ Next due'],['rank','🏷 Priority ranking'],['ops','🧭 Firm workflow'],['audit','📚 Audit season'],['portals','🌐 Portals']];
+  $('firmTabs').innerHTML = tabs.map(([k,l]) => '<button class="chip m" data-tab="' + k + '" aria-pressed="' + (UI.tab === k) + '">' + l + '</button>').join('');
+  $('firmBody').innerHTML = ({ next: firmNext, rank: firmRank, ops: firmOps, audit: firmAudit, portals: firmPortals })[UI.tab]();
+}
+function downloadTracker(){
+  const q = s => '"' + String(s).replace(/"/g, '""') + '"';
+  const rows = [TRACK.map(q).join(',')].concat(firmOcc().slice(0, 30).map(o => {
+    const r = TRACK.map(() => ''); r[3] = o.title; r[4] = ymd(new Date(o.end)); r[14] = PRIO[o.p].n; return r.map(q).join(',');
+  }));
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\ufeff' + rows.join('\r\n')], { type: 'text/csv' }));
+  a.download = 'ca-compliance-tracker.csv'; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+
+/* ======================= LIVE FEED ======================= */
+async function fetchFeed(){
+  let lastErr = new Error('no source');
+  for (const base of CONFIG.SOURCES) {
+    const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), CONFIG.FETCH_TIMEOUT_MS);
+    try {
+      const r = await fetch(base + (base.includes('?') ? '&' : '?') + 't=' + Date.now(), { signal: ctl.signal, cache: 'no-store' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      if (/\.json(\?|$)/.test(base)) {
+        const j = await r.json();
+        if (!j.items || !j.items.length) throw new Error('empty feed');
+        const when = j.checked || j.updated;
+        const stamp = when ? new Date(when).toLocaleString('en-IN', { timeZone:'Asia/Kolkata', day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit', hour12:true }) : null;
+        return { items: j.items, stamp, from: location.host || 'this site' };
+      }
+      const html = await r.text();
+      const m = html.match(/var D=(\[[\s\S]*?\]),cat=/);
+      if (!m) throw new Error('feed format changed');
+      const items = JSON.parse(m[1].replace(/<\\\//g, '</'));
+      const st = html.match(/Auto-updated:\s*([^<·]+?)\s*IST/);
+      return { items, stamp: st ? st[1] : null, from: new URL(base).host };
+    } catch (e) { lastErr = e; }
+    finally { clearTimeout(to); }
+  }
+  throw lastErr;
+}
+
+function setStatus(kind, txt){
+  const el = $('status'); el.className = 'pill ' + kind; $('statusTxt').textContent = txt;
+}
+function toast(msg){
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove('show'), 4200);
+}
+
+function applyFeed(items, meta){
+  const firstRender = !state.raw.length;
+  state.raw = items;
+  const { list, undated } = buildDeadlines(items);
+  // detect arrivals (compare against headlines we have already seen, remembered across visits)
+  const fresh = [];
+  list.forEach(d => {
+    const isNew = d.keys.some(k => !state.seen.has(k));
+    if (isNew && !state.firstEver) { d.keys.forEach(k => { if (!state.seen.has(k)) state.sessionNew.add(k); }); fresh.push(d); }
+  });
+  const prevIds = new Set(state.deadlines.map(d => d.id));
+  state.deadlines = list; state.undated = undated;
+  const animate = firstRender ? 'all' : new Set(list.filter(d => !prevIds.has(d.id)).map(d => d.id));
+  render(animate);
+  // remember what we have shown
+  list.forEach(d => d.keys.forEach(k => state.seen.add(k)));
+  items.forEach(x => state.seen.add(keyOf(x.t || '')));
+  store.set('cd_seen', JSON.stringify([...state.seen].slice(-1500)));
+  state.firstEver = false;
+  // sound + toast
+  const now = Date.now();
+  if (firstRender) {
+    const st = list.map(d => statusOf(d, now));
+    Sound.play('drop');
+    if (st.some(s => s.today)) setTimeout(() => Sound.play('critical'), 700);
+    else if (st.some(s => s.key === 'red')) setTimeout(() => Sound.play('alarm'), 700);
+    else if (list.some(d => d.extended)) setTimeout(() => Sound.play('ding'), 700);
+  } else if (fresh.length) {
+    fresh.slice(0, 3).forEach((d, i) => setTimeout(() => {
+      const s = statusOf(d, Date.now());
+      Sound.play(s.today ? 'critical' : s.key === 'red' ? 'alarm' : d.extended ? 'ding' : 'drop');
+    }, i * 900));
+    toast('🛰 ' + fresh.length + ' new deadline' + (fresh.length > 1 ? 's' : '') + ' detected: ' + fresh[0].title.slice(0, 90));
+  }
+  meta.live ? setStatus('', 'LIVE') : setStatus('off', 'OFFLINE SNAPSHOT');
+  state.live = meta.live; state.feedStamp = meta.stamp || null;
+  state.lastSync = Date.now();
+}
+
+async function sync(manual){
+  if (state.syncing) return;
+  state.syncing = true; setStatus('sync', 'SYNCING…');
+  try {
+    const f = await fetchFeed();
+    applyFeed(f.items, { live: true, stamp: f.stamp });
+    if (manual) { Sound.play('sync'); toast('Synced from ' + f.from + (f.stamp ? ' · feed built ' + f.stamp + ' IST' : '')); }
+  } catch (e) {
+    if (!state.raw.length) { applyFeed(SNAPSHOT, { live: false }); toast('Could not reach the live feed — showing the saved snapshot.'); }
+    else { setStatus('off', 'STALE · retrying'); if (manual) toast('Could not reach the live feed. Will retry automatically.'); }
+  }
+  state.syncing = false;
+  state.nextSync = Date.now() + (state.live ? CONFIG.POLL_MS : 60 * 1000);
+}
+
+/* ======================= LIVE TICK ======================= */
+function tick(){
+  const now = Date.now();
+  document.querySelectorAll('.card').forEach(el => {
+    const d = byId.get(el.dataset.id); if (!d) return;
+    const st = statusOf(d, now);
+    el.querySelector('.cd').textContent = countdown(d, now);
+    const sig = st.cls + '|' + st.label;
+    if (el.dataset.sig !== sig) {
+      const prev = el.dataset.sig || '';
+      el.dataset.sig = sig;
+      el.className = 'card ' + st.cls + (el.classList.contains('open') ? ' open' : '');
+      el.querySelector('.badge').textContent = st.label;
+      if (st.key === 'gray') {                           // deadline just passed: vanish in a burst of stars
+        Sound.play('vanish'); burst(el);
+        setTimeout(() => render(null), 900);
+      } else if (st.today && !prev.includes('hot')) Sound.play('critical');
+      else if (st.key === 'red' && !prev.startsWith('red')) Sound.play('alarm');
+    }
+  });
+  renderStats(now);
+  // header: next sync countdown
+  if (state.lastSync && !state.syncing) {
+    const left = Math.max(0, Math.round((state.nextSync - now) / 1000));
+    const base = state.live ? 'LIVE' : 'OFFLINE SNAPSHOT';
+    $('statusTxt').textContent = base + ' · next sync ' + Math.floor(left/60) + ':' + pad(left % 60);
+    if (left === 0) sync(false);
+  }
+}
+
+/* ======================= PARTICLES (deadline vanishes) ======================= */
+const fxc = $('fx'), fxx = fxc.getContext('2d');
+let parts = [], fxRun = false;
+function sizeFx(){ fxc.width = innerWidth; fxc.height = innerHeight; }
+addEventListener('resize', sizeFx); sizeFx();
+function burst(el){
+  const r = el.getBoundingClientRect(), cols = ['#00f0ff','#ff2d55','#a07bff','#ffd700','#ffffff'];
+  for (let i = 0; i < 110; i++) parts.push({ x: r.left + Math.random() * r.width, y: r.top + Math.random() * r.height, vx: (Math.random() - .5) * 7, vy: (Math.random() - 1.4) * 5, s: Math.random() * 3 + 1, a: 1, dec: Math.random() * .02 + .012, c: cols[i % cols.length] });
+  el.style.transition = 'opacity .5s, transform .5s'; el.style.opacity = '0'; el.style.transform = 'scale(.9)';
+  if (!fxRun) { fxRun = true; requestAnimationFrame(loopFx); }
+}
+function loopFx(){
+  fxx.clearRect(0, 0, fxc.width, fxc.height);
+  parts = parts.filter(p => p.a > 0);
+  parts.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy -= .04; p.a -= p.dec; fxx.globalAlpha = Math.max(0, p.a); fxx.fillStyle = p.c; fxx.beginPath(); fxx.arc(p.x, p.y, p.s, 0, 6.283); fxx.fill(); });
+  fxx.globalAlpha = 1;
+  if (parts.length) requestAnimationFrame(loopFx); else { fxRun = false; fxx.clearRect(0, 0, fxc.width, fxc.height); }
+}
+
+/* ======================= STARFIELD ======================= */
+(function(){
+  const c = $('stars'), x = c.getContext('2d'); let w, h, stars = [];
+  function size(){ w = c.width = innerWidth; h = c.height = innerHeight; stars = Array.from({length: 140}, () => ({ x: Math.random() * w, y: Math.random() * h, r: Math.random() * 1.4 + .4, a: Math.random(), s: Math.random() * .018 + .004 })); }
+  function frame(){ x.clearRect(0, 0, w, h); stars.forEach(s => { s.a += s.s; if (s.a > 1 || s.a < 0) s.s = -s.s; x.beginPath(); x.arc(s.x, s.y, s.r, 0, 6.283); x.fillStyle = 'rgba(120,230,255,' + Math.abs(s.a) + ')'; x.fill(); }); requestAnimationFrame(frame); }
+  addEventListener('resize', size); size();
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) frame();
+})();
+
+/* ======================= CALENDAR (.ics) ======================= */
+function downloadICS(d){
+  const dt = new Date(d.end), next = new Date(d.end + 864e5);
+  const f = x => x.getFullYear() + pad(x.getMonth() + 1) + pad(x.getDate());
+  const clean = s => s.replace(/[\\;,]/g, m => '\\' + m).replace(/\r?\n/g, ' ');
+  const ics = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Chrono-Sphere//CA Deadline Radar//EN','BEGIN:VEVENT',
+    'UID:' + d.id + '@chrono-sphere', 'DTSTAMP:' + new Date().toISOString().replace(/[-:]/g,'').slice(0,15) + 'Z',
+    'DTSTART;VALUE=DATE:' + f(dt), 'DTEND;VALUE=DATE:' + f(next),
+    'SUMMARY:' + clean('⏰ ' + d.title), 'DESCRIPTION:' + clean('Source: ' + d.url + ' — verify on the official notification.'),
+    'BEGIN:VALARM','TRIGGER:-P1D','ACTION:DISPLAY','DESCRIPTION:Deadline tomorrow','END:VALARM','END:VEVENT','END:VCALENDAR'].join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([ics], { type: 'text/calendar' }));
+  a.download = 'deadline-' + d.ymd + '.ics'; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+
+/* ======================= REFERENCES ======================= */
+const OFFICIAL = [
+  [/\bgst|gstr|cbic|e-?way|e-?invoice/i, [['GST Portal – news & updates','https://www.gst.gov.in'],['CBIC – GST notifications & circulars','https://cbic-gst.gov.in']]],
+  [/epfo|provident|payroll/i, [['EPFO','https://www.epfindia.gov.in']]],
+  [/esic|payroll/i, [['ESIC','https://www.esic.gov.in']]],
+  [/\brbi\b|fema|\bfla\b/i, [['RBI – notifications','https://www.rbi.org.in']]],
+  [/sebi/i, [['SEBI – circulars','https://www.sebi.gov.in']]],
+  [/icai|icsi|icmai/i, [['ICAI','https://www.icai.org']]],
+  [/customs|dgft|duty/i, [['CBIC – customs notifications','https://www.cbic.gov.in']]],
+  [/\bmca\b|\broc\b|\bllp\b|compan|nclt|aoc|mgt-?7|dir-?3|adt|dpt|msme-?1/i, [['MCA – notifications & circulars','https://www.mca.gov.in']]],
+  [/income|\bitr\b|\btds\b|\btcs\b|cbdt|direct tax|advance tax|tax audit|3ceb/i, [['Income Tax Dept – notifications & circulars','https://incometaxindia.gov.in'],['Income Tax e-filing portal','https://www.incometax.gov.in']]]
+];
+function officialFor(text){
+  const seen = new Map();
+  OFFICIAL.forEach(([rx, links]) => { if (rx.test(text)) links.forEach(l => seen.set(l[1], l)); });
+  return [...seen.values()];
+}
+const newsSearch = q => 'https://news.google.com/search?q=' + encodeURIComponent(q) + '&hl=en-IN&gl=IN&ceid=IN:en';
+const extLink = (label, url, sub) => '<a class="ext" href="' + esc(safeUrl(url)) + '" target="_blank" rel="noopener" data-sfx="click">' + esc(label) + '<small>' + esc(sub) + ' ↗</small></a>';
+function refTail(text, q){
+  const off = officialFor(text);
+  return '<div class="fh">Confirm on the official source</div>' +
+    (off.length ? off.map(l => extLink(l[0], l[1], l[1].replace('https://', ''))).join('') : '<div class="note">No official site matched — check the relevant department’s notification page.</div>') +
+    '<div class="fh">Check for newer updates</div>' + extLink('Live news search for this deadline', newsSearch(q), 'news.google.com · India edition') +
+    '<p class="note">' + (state.live ? 'Live feed' : 'Offline snapshot') + (state.feedStamp ? ' · checked ' + esc(state.feedStamp) + ' IST' : '') +
+    '. Dates are read from headlines automatically — always confirm on the official notification before acting.</p>';
+}
+function openRef(html){ $('refBody').innerHTML = html; $('refModal').hidden = false; document.body.style.overflow = 'hidden'; $('refClose').focus(); }
+function closeRef(){ $('refModal').hidden = true; document.body.style.overflow = ''; }
+function refDeadline(d){
+  const ms = d.members.slice().sort((a, b) => a.d - b.d);
+  const fmt = x => x.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+  return '<h3 id="refTitle">🔎 Where this news came from</h3><p class="rt">' + esc(d.title) + '</p>' +
+    '<div class="lbl">Deadline read from headline: ' + esc(fmtDate(d.end)) + (d.extended ? ' · marked as extended' : '') + '</div>' +
+    (d.demo ? '<p class="note">This is a preview card — it has no real source.</p>' :
+      '<div class="fh">News sources (' + ms.length + ') · oldest first</div><ul class="nlist p4">' +
+      ms.map(m => '<li><a href="' + esc(safeUrl(m.u)) + '" target="_blank" rel="noopener" data-sfx="click"><span class="t">' + esc(m.t) + '</span><span class="m"><span>' + esc(m.s || 'source') + ' · published ' + esc(fmt(m.d)) + ' · open the article ↗</span></span></a></li>').join('') + '</ul>') +
+    refTail(d.category + ' ' + d.title, d.title + ' due date');
+}
+function refFirm(o){
+  return '<h3 id="refTitle">🔎 Reference</h3><p class="rt">' + esc(o.title) + '</p>' +
+    '<div class="lbl">' + esc(fmtDate(o.end)) + ' · ' + esc(o.dept) + ' · ' + PRIO[o.p].n + ' ' + PRIO[o.p].l + '</div>' +
+    '<p class="note">This is a standard statutory timeline from the CA-firm compliance priority list (FY 2026–27). Extensions, taxpayer category and AGM-linked dates can change it — use the links below to confirm.</p>' +
+    refTail(o.dept + ' ' + o.title, o.title + ' due date extended');
+}
+
+/* ======================= EVENTS ======================= */
+['pointerdown','keydown','touchstart'].forEach(ev => addEventListener(ev, () => Sound.arm(), { once: false, passive: true }));
+
+$('grid').addEventListener('click', e => {
+  const ics = e.target.closest('[data-ics]');
+  if (ics) { e.stopPropagation(); const d = byId.get(ics.dataset.ics); if (d) { downloadICS(d); Sound.play('click'); toast('Calendar file downloaded'); } return; }
+  const rf = e.target.closest('[data-ref]');
+  if (rf) { e.stopPropagation(); const d = byId.get(rf.dataset.ref); if (d) { openRef(refDeadline(d)); Sound.play('click'); } return; }
+  if (e.target.closest('a')) return;
+  const card = e.target.closest('.card'); if (!card) return;
+  const open = card.classList.toggle('open'); card.setAttribute('aria-expanded', open);
+  card.querySelector('.foot span:last-child').textContent = open ? 'tap to collapse ▴' : 'tap for details ▾';
+  Sound.play('click');
+});
+$('grid').addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.classList.contains('card')) { e.preventDefault(); e.target.click(); } });
+let lastTick = 0;
+$('grid').addEventListener('pointerover', e => {
+  if (e.pointerType !== 'mouse') return;
+  const c = e.target.closest('.card'); if (!c || c.contains(e.relatedTarget)) return;
+  const n = performance.now(); if (n - lastTick > 90) { lastTick = n; Sound.play('tick'); }
+});
+document.addEventListener('click', e => { const a = e.target.closest('a[data-sfx]'); if (a) Sound.play('click'); });
+
+$('statusChips').addEventListener('click', e => { const b = e.target.closest('[data-status]'); if (!b) return; state.filter.status = b.dataset.status; Sound.play('click'); render(null); });
+$('monthChips').addEventListener('click', e => { const b = e.target.closest('[data-month]'); if (!b) return; state.filter.month = b.dataset.month; Sound.play('click'); render(null); });
+$('cat').addEventListener('change', e => { state.filter.cat = e.target.value; Sound.play('click'); render(null); });
+$('q').addEventListener('input', e => { state.filter.q = e.target.value; render(null); $('q').focus(); });
+$('syncBtn').addEventListener('click', () => { Sound.arm(); sync(true); });
+$('soundBtn').addEventListener('click', () => {
+  Sound.arm(); const on = Sound.toggle();
+  $('soundBtn').setAttribute('aria-pressed', on); $('soundBtn').textContent = on ? '🔊 Sound' : '🔇 Muted';
+  if (on) Sound.play('click');
+});
+$('demoBtn').addEventListener('click', () => {
+  Sound.arm();
+  if (state.demos.length) { state.demos = []; render(null); return; }
+  const now = Date.now(), mk = (id, title, cat, days, ext) => {
+    const t = new Date(now + days * 864e5); t.setHours(23, 59, 59, 0);
+    return { id: 'demo-' + id, demo: true, title, url: '#', category: cat, end: t.getTime(), ymd: ymd(t), extended: ext, requested: false, effective: false, pub: new Date(), members: [{ t: title, u: '#', s: 'demo', d: new Date() }], keys: ['demo-' + id] };
+  };
+  state.demos = [
+    mk('red', 'DEMO · GST annual return due this month', 'GST', 0, false),
+    mk('blue', 'DEMO · Tax audit report deadline extended to next quarter', 'Income Tax', 75, true),
+    mk('violet', 'DEMO · ICAI exam form last date', 'ICAI', 40, false)
+  ];
+  state.filter.status = 'active'; state.filter.month = 'all'; state.filter.cat = 'All'; state.filter.q = ''; $('q').value = '';
+  render(new Set(state.demos.map(d => d.id)));
+  Sound.play('drop'); setTimeout(() => Sound.play('alarm'), 650); setTimeout(() => Sound.play('ding'), 1500);
+  toast('Preview cards dropped — press Preview again to remove them.');
+});
+
+/* ---- priority sections ---- */
+$('pnChips').addEventListener('click', e => { const b = e.target.closest('[data-pn]'); if (!b) return; UI.pn = b.dataset.pn; UI.pnMax = 15; Sound.play('click'); renderPrioNews(); });
+$('pnMore').addEventListener('click', () => { UI.pnMax += 15; Sound.play('click'); renderPrioNews(); });
+$('firmTabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (!b) return; UI.tab = b.dataset.tab; Sound.play('click'); renderFirm(); });
+$('firmBody').addEventListener('click', e => {
+  const f = e.target.closest('[data-fp]'); if (f) { UI.fp = f.dataset.fp; Sound.play('click'); renderFirm(); return; }
+  const fr = e.target.closest('[data-fref]');
+  if (fr) { const o = (UI.firmList || [])[+fr.dataset.fref]; if (o) { openRef(refFirm(o)); Sound.play('click'); } return; }
+  if (e.target.closest('[data-csv]')) { downloadTracker(); Sound.play('click'); toast('Tracker template downloaded'); }
+});
+$('firmBody').addEventListener('change', e => {
+  const c = e.target.closest('[data-audit]'); if (!c) return;
+  const s = auditDone(), i = +c.dataset.audit; c.checked ? s.add(i) : s.delete(i);
+  store.set('cd_audit', JSON.stringify([...s])); renderFirm();
+});
+
+$('refClose').addEventListener('click', closeRef);
+$('refModal').addEventListener('click', e => { if (e.target.id === 'refModal') closeRef(); });
+addEventListener('keydown', e => { if (e.key === 'Escape' && !$('refModal').hidden) closeRef(); });
+
+/* ======================= BOOT ======================= */
+(function boot(){
+  if (!Sound.on) { $('soundBtn').setAttribute('aria-pressed', 'false'); $('soundBtn').textContent = '🔇 Muted'; }
+  else $('arm').classList.add('show');
+  render(null);
+  renderFirm();
+  setInterval(() => { if (UI.tab === 'next') renderFirm(); }, 30000);
+  sync(false);
+  setInterval(tick, 1000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - state.lastSync > 2 * 60 * 1000) sync(false); });
+})();
+</script>
+</body>
+</html>
